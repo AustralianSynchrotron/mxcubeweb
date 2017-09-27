@@ -148,6 +148,8 @@ export default class SampleQueueContainer extends React.Component {
                   sendSetCentringMethod={sendSetCentringMethod}
                   centringMethod={centringMethod}
                   todoList={todo}
+                  pause={sendPauseQueue}
+                  unpause={sendUnpauseQueue}
                 />
               <div className="m-tree queue-body">
                 <Nav

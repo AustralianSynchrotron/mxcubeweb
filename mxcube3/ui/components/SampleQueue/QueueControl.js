@@ -38,7 +38,7 @@ export default class QueueControl extends React.Component {
           { text: 'Mount Next Sample', class: 'btn-primary', action: this.nextSample, key: 2 }
         ],
         [QUEUE_PAUSED]: [
-          { text: 'Unpause', class: 'btn-success', action: this.props.unpause, key: 2 }
+          { text: 'Resume', class: 'btn-success', action: this.props.unpause, key: 2 }
         ],
         NoSampleMounted: [
           { text: 'New Sample', class: 'btn-primary', action: this.showForm, key: 1 },
