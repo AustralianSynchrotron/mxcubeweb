@@ -205,6 +205,12 @@ def queue_execution_stopped():
     safe_emit('queue', msg, namespace='/hwr')
 
 
+def queue_execution_paused(args):
+    msg = {'Signal': 'QueuePaused', 'Message': 'Queue execution paused'}
+
+    safe_emit('queue', msg, namespace='/hwr')
+
+
 def queue_execution_failed(entry):
     msg = {'Signal': qutils.queue_exec_state(),
            'Message': 'Queue execution stopped'}

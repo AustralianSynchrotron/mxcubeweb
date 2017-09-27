@@ -962,6 +962,12 @@ def set_char_params(model, entry, task_data, sample_model):
     model.characterisation_parameters.aimed_resolution = float(defaults.find(
         ".diffractionPlan/aimedResolution/value").text)
 
+    model.characterisation_parameters.max_crystal_vdim = float(defaults.find(
+            ".sample/size/y/value").text)
+
+    model.characterisation_parameters.min_crystal_vdim = float(defaults.find(
+            ".sample/size/x/value").text)
+
     # MXCuBE3 specific shape attribute
     model.shape = params["shape"]
 
@@ -1070,6 +1076,7 @@ def _create_dc(task):
     """
     dc_model = qmo.DataCollection()
     dc_model.set_origin(ORIGIN_MX3)
+    dc_model.center_before_collect = True
     dc_entry = qe.DataCollectionQueueEntry(Mock(), dc_model)
 
     return dc_model, dc_entry
@@ -1139,8 +1146,8 @@ def add_characterisation(node_id, task):
     refdc_model, refdc_entry = _create_dc(task)
     refdc_model.acquisitions[0].path_template.reference_image_prefix = 'ref'
     refdc_model.set_name('refdc')
+    refdc_model.acquisitions[0].acquisition_parameters.shutterless = False
     char_params = qmo.CharacterisationParameters().set_from_dict(params)
-
     char_model = qmo.Characterisation(refdc_model, char_params)
 
     char_model.set_origin(ORIGIN_MX3)
@@ -1528,6 +1535,10 @@ def init_signals(queue):
 
     queue.queue_hwobj.connect("queue_execution_finished",
                               signals.queue_execution_finished)
+
+    queue.queue_hwobj.connect("queue_paused",
+                              signals.queue_execution_paused)
+
 
     queue.queue_hwobj.connect("queue_stopped",
                               signals.queue_execution_finished)
