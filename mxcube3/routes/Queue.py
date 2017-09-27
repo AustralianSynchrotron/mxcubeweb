@@ -477,7 +477,7 @@ def get_default_char_acq_params():
             'resolution': acq_parameters.resolution,
             'energy': acq_parameters.energy,
             'transmission': acq_parameters.transmission,
-            'shutterless': acq_parameters.shutterless,
+            'shutterless': False,
             'detector_mode': acq_parameters.detector_mode,
             'inverse_beam': False,
             'take_dark_current': True,
