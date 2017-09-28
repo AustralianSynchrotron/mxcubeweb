@@ -1,6 +1,7 @@
 import json
 import logging
 import signals
+import xml.etree.ElementTree as et
 
 import queue_model_objects_v1 as qmo
 import queue_entry as qe
@@ -463,6 +464,22 @@ def get_default_char_acq_params():
     n = int(mxcube.session["file_info"].getProperty("precision", 4))
     template = '`${prefix}_${position}_[RUN]_%s.%s`' % (n * '#', ftype)
 
+    defaults = et.fromstring(mxcube.beamline.getObjectByRole("data_analysis").
+                             edna_default_input)
+
+    aimed_i_sigma = float(defaults.find(
+        ".diffractionPlan/aimedIOverSigmaAtHighestResolution/value").text)
+
+    aimed_completness = float(defaults.find(
+        ".diffractionPlan/aimedCompleteness/value").text)
+
+    aimed_resolution = float(defaults.find(
+        ".diffractionPlan/aimedResolution/value").text)
+
+    max_crystal_vdim = float(defaults.find(".sample/size/y/value").text)
+
+    min_crystal_vdim = float(defaults.find(".sample/size/x/value").text)
+
     resp = jsonify({
         'acq_parameters': {
             'first_image': acq_parameters.first_image,
@@ -483,8 +500,18 @@ def get_default_char_acq_params():
             'take_dark_current': True,
             'skip_existing_images': False,
             'take_snapshots': True,
-            'fileNameTemplate': template
-        },
+            'fileNameTemplate': template,
+            'min_crystal_vdim': min_crystal_vdim,
+            'max_crystal_vdim': max_crystal_vdim,
+            'min_crystal_vphi': 0,
+            'max_crystal_vphi': 0,
+            'strategy_complexity': '',
+            'account_rad_damage': '',
+            'opt_sad': '',
+            'aimed_i_sigma': aimed_i_sigma,
+            'aimed_completness':  aimed_completness,
+            'aimed_resolution': aimed_resolution 
+            }
         })
 
     resp.status_code = 200

@@ -3,6 +3,7 @@ import { connect } from 'react-redux';
 import { reduxForm, formValueSelector } from 'redux-form';
 import { Modal, Button, Form, Row, Col, ButtonToolbar } from 'react-bootstrap';
 import { DraggableModal } from '../DraggableModal';
+import { XTAL_SPACEGROUPS, STRATEGY_COMPLEXITY } from '../../constants';
 import validate from './validate';
 import { FieldsHeader,
          StaticField,
@@ -39,6 +40,8 @@ class Characterisation extends React.Component {
       shape: this.props.pointID,
       helical: false
     };
+
+    parameters.strategy_complexity = STRATEGY_COMPLEXITY[params.strategy_complexity] || 1;
 
     const stringFields = [
       'centringMethod',
@@ -147,19 +150,19 @@ class Characterisation extends React.Component {
             <FieldsHeader title="Characterisation" />
             <CollapsableRows>
               <Form horizontal>
+                <SelectField
+                  col1="4"
+                  col2="6"
+                  propName="strategy_complexity"
+                  label="Strategy complexity"
+                  list={Object.keys(STRATEGY_COMPLEXITY)}
+                />
                 <FieldsRow>
-                  <SelectField
-                    propName="strategy_complexity"
-                    label="Strategy complexity"
-                    list={['Single subwedge', 'Multiple subwedge']}
-                  />
+                  <CheckboxField propName="opt_sad" label="Optimised SAD" />
                   <CheckboxField
                     propName="account_rad_damage"
                     label="Account for radiation damage"
                   />
-                </FieldsRow>
-                <FieldsRow>
-                  <CheckboxField propName="opt_sad" label="Optimised SAD" />
                 </FieldsRow>
               </Form>
             </CollapsableRows>
@@ -168,13 +171,25 @@ class Characterisation extends React.Component {
             <CollapsableRows>
               <Form horizontal>
                 <FieldsRow>
-                  <SelectField propName="space_group" label="Space group" list={['P1', 'P211']} />
+                  <SelectField propName="space_group" label="Space group" list={XTAL_SPACEGROUPS} />
                 </FieldsRow>
                 <FieldsRow>
-                  <InputField propName="min_crystal_vdim" label="Min" />
-                  <InputField propName="max_crystal_vdim" label="Max" />
-                  <InputField propName="min_crystal_vphi" label="&omega; at min" />
-                  <InputField propName="max_crystal_vphi" label="&omega; at max" />
+                  <InputField col1="4" col2="4" propName="min_crystal_vdim" label="Min" />
+                  <InputField col1="4" col2="4" propName="max_crystal_vdim" label="Max" />
+                </FieldsRow>
+                <FieldsRow>
+                  <InputField
+                    col1="4"
+                    col2="4"
+                    propName="min_crystal_vphi"
+                    label="&omega; at min"
+                  />
+                  <InputField
+                    col1="4"
+                    col2="4"
+                    propName="max_crystal_vphi"
+                    label="&omega; at max"
+                  />
                 </FieldsRow>
               </Form>
             </CollapsableRows>
