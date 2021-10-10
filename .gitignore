@@ -72,3 +72,6 @@ ui/package-lock.json
 
 # Editors
 .vscode
+
+# OS
+.DS_Store
