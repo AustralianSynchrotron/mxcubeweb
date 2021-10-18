@@ -320,14 +320,7 @@ class AdapterBase:
         return HOModel(**self._dict_repr())
 
     def dict(self):
-        try:
-            return self.data().dict()
-        except:
-            # FIXME: the value field should be a dictionary, however it is
-            # returning a float.
-            # For the moment I'm catching the error here.
-            logging.getLogger("HWR").debug(f"value error: {self._dict_repr()}")
-            return dict()
+        return self.data().dict()
 
 
 class ActuatorAdapterBase(AdapterBase):
