@@ -14,6 +14,7 @@ class BeamAdapter(ActuatorAdapterBase):
     def _get_aperture(self) -> tuple:
         """
         Returns list of apertures and the one currently used.
+        This function is also defined in beamutils.py
 
         :return: Tuple, (list of apertures, current aperture)
         :rtype: tuple
