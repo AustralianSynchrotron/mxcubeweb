@@ -22,13 +22,7 @@ class BeamAdapter(ActuatorAdapterBase):
         beam_ho = self._ho
 
         aperture_list = beam_ho.get_available_size()["values"]
-
-        # FIXME The following line returns a None value
-        # (see the ansto/beam.py function)
-        # current_aperture = beam_ho.get_value()[-1]
-        # I have hardcoded the current_aperture list
-        # this problem is also found in beamlineutils.py
-        current_aperture = beam_ho.get_available_size()["values"][-1]
+        current_aperture = beam_ho._aperture.get_diameter_size()
 
         return aperture_list, current_aperture
 
