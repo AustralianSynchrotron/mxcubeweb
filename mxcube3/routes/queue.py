@@ -1,4 +1,5 @@
 import json
+import logging
 
 from flask import Blueprint, Response, jsonify, request, session
 
@@ -142,7 +143,8 @@ def init_route(app, server, url_prefix):
         """
         try:
             app.queue.execute_entry_with_id(sid, tindex)
-        except Exception:
+        except Exception as e:
+            logging.getLogger("HWR").info(f"Queue execution failed: {e}")
             return Response(status=409)
         else:
             return Response(status=200)
