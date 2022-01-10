@@ -3,3 +3,14 @@ ignore = E203, E266, E501, W503, F403, F401
 max-line-length = 88
 max-complexity = 18
 select = B,C,E,F,W,T4,B9
+; E402 - module level import not at top of file
+; C901 - '<method>' is too complex (35)
+per-file-ignores =
+    mxcube3/__init__.py:E402
+    test/fixture.py:E402
+    mxcube3/routes/ra.py:C901
+    mxcube3/routes/samplecentring.py:C901
+    mxcube3/core/scutils.py:C901
+    mxcube3/routes/samplechanger.py:C901
+    mxcube3/routes/queue.py:C901
+    mxcube3/routes/lims.py:C901

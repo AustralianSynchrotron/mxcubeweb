@@ -1,16 +1,14 @@
-import time
-import json
 import copy
+import json
+import time
 
 from input_parameters import (
-    test_sample_5,
-    test_sample_6,
-    test_task,
-    test_edit_task,
-    default_dc_params,
     default_char_acq_params,
     default_mesh_params,
     default_xrf_parameters,
+    test_edit_task,
+    test_sample_6,
+    test_task,
 )
 
 
@@ -153,7 +151,10 @@ def test_queue_abort(client):
 
 
 def test_queue_clear(client):
-    """Test if we can clear the queue. A sample and a task are added by fixtures and then cleared."""
+    """
+    Test if we can clear the queue.
+    A sample and a task are added by fixtures and then cleared.
+    """
     resp = client.put("/mxcube/api/v0.1/queue/clear")
     assert resp.status_code == 200
 
@@ -205,7 +206,7 @@ def test_queue_enable_item(client):
     resp = client.get("/mxcube/api/v0.1/queue/")
     assert (
         resp.status_code == 200
-        and json.loads(resp.data).get("1:05")["checked"] == False
+        and json.loads(resp.data).get("1:05")["checked"] is False
     )
 
 
@@ -454,7 +455,7 @@ def test_set_automount(client):
         data=json.dumps(True),
         content_type="application/json",
     )
-    assert resp.status_code == 200 and json.loads(resp.data).get("automount") == True
+    assert resp.status_code == 200 and json.loads(resp.data).get("automount") is True
 
 
 def test_set_num_snapshots(client):
@@ -486,5 +487,5 @@ def test_set_autoadd(client):
     )
     assert (
         resp.status_code == 200
-        and json.loads(resp.data).get("auto_add_diffplan") == True
+        and json.loads(resp.data).get("auto_add_diffplan") is True
     )

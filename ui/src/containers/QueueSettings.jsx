@@ -129,4 +129,3 @@ export default connect(
   mapStateToProps,
   mapDispatchToProps
 )(QueueSettings);
-

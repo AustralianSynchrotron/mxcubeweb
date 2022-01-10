@@ -1,8 +1,7 @@
-import traceback
-import logging
-import signal
 import atexit
+import logging
 import os
+import signal
 import time
 
 import gevent

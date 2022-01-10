@@ -42,4 +42,3 @@ export default class BeamlineActionControl extends React.Component {
       </ButtonToolbar>);
   }
 }
-

@@ -31,6 +31,7 @@ repos:
       - id: check-symlinks
       - id: check-xml
       - id: check-yaml
+        exclude: ^meta\.yaml$
       - id: mixed-line-ending
         args: ["--fix=lf"]
       - id: no-commit-to-branch

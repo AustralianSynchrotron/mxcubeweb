@@ -7,7 +7,6 @@ from mxcube3.core.models.adaptermodels import (
     FloatValueModel,
 )
 
-
 class ActuatorAdapter(ActuatorAdapterBase):
     """
     Adapter for Energy Hardware Object, a web socket is used to communicate

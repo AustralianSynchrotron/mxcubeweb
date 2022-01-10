@@ -6,11 +6,12 @@ from flask import (
     Blueprint,
     jsonify,
     Response,
-    request,
-    make_response,
     copy_current_request_context,
+    jsonify,
+    make_response,
+    request,
+    session,
 )
-
 from flask_socketio import join_room, leave_room
 from flask_login import current_user
 

@@ -1,12 +1,9 @@
 import json
+import sys
 
 # Python 2 and 3 compatibility
-try:
-    unicode
-except:
+if sys.version_info[0] >= 3:
     unicode = str
-
-from fixture import client
 
 
 def test_beamline_get_all_attribute(client):
@@ -88,7 +85,7 @@ def test_beamline_get_attribute(client):
         for key in keys:
             assert key in data
 
-        assert data["available"] == True
+        assert data["available"] is True
         assert resp.status_code == 200
 
 

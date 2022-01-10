@@ -6,7 +6,7 @@
   <object href="/attenuators-mockup" role="transmission"/>
   <object href="/detector-mockup" role="detector"/>
   <object href="/resolution-mockup" role="resolution"/>
-  <object href="/lims" role="dbserver"/> 
+  <object href="/lims" role="dbserver"/>
   <num_snapshots>0</num_snapshots>
 
   <auto_processing>

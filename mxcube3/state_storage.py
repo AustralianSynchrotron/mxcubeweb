@@ -2,7 +2,6 @@ from flask_socketio import emit
 from mxcube3 import server
 from mxcube3 import mxcube
 
-import json
 
 
 def flush():

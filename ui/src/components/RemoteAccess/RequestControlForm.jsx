@@ -122,4 +122,3 @@ export default connect(
   mapStateToProps,
   mapDispatchToProps,
 )(RequestControlForm);
-

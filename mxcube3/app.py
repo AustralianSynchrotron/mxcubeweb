@@ -4,7 +4,6 @@ for accessing and manipulating those.
 """
 import os
 import sys
-import logging
 import traceback
 import atexit
 import json
@@ -29,7 +28,6 @@ from mxcube3.core.components.beamline import Beamline
 from mxcube3.core.components.sampleview import SampleView
 from mxcube3.core.components.queue import Queue
 from mxcube3.core.components.workflow import Workflow
-
 
 removeLoggingHandlers()
 

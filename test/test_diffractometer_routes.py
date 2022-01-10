@@ -1,13 +1,10 @@
 import json
 import random
+import sys
 
 # Python 2 and 3 compatibility
-try:
-    unicode
-except:
+if sys.version_info[0] >= 3:
     unicode = str
-
-from fixture import client
 
 
 def test_get_phase_list(client):

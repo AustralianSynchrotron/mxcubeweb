@@ -4,7 +4,7 @@
   <object role="focus" hwrid="./udiff_phix"></object>
   <object role="zoom" hwrid="./udiff_zoom"></object>
   <object role="phi" hwrid="./udiff_omega"></object>
-  <object role="phiy" hwrid="./udiff_phiy"></object> 
+  <object role="phiy" hwrid="./udiff_phiy"></object>
   <object role="phiz" hwrid="./udiff_phiz"></object>
   <object role="sampx" hwrid="./udiff_sampx"></object>
   <object role="sampy" hwrid="./udiff_sampy"></object>
@@ -22,7 +22,7 @@
     <object role="samplechanger" hwrid="./sc-mockup"></object>
   </others>
   <kappa>
-    <object hwrid="./udiff_omega"></object>  
+    <object hwrid="./udiff_omega"></object>
   </kappa>
   <zoomCentre>{"x":340,"y":250}</zoomCentre>
   <omegaReference>{"motor_name": "phiz", "position":-0.2224, "camera_axis":"x"}</omegaReference>

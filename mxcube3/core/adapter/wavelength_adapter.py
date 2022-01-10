@@ -6,7 +6,6 @@ from mxcube3.core.models.adaptermodels import (
     HOActuatorValueChangeModel,
 )
 
-
 class WavelengthAdapter(ActuatorAdapterBase):
     """
     Adapter for wavelength Hardware Object, a web socket is used communicate

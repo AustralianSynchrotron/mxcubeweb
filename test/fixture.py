@@ -4,11 +4,10 @@ from gevent import monkey
 
 monkey.patch_all(thread=False)
 
-import pytest
-import sys
-import os
-import json
 import copy
+import json
+import os
+import sys
 
 from input_parameters import (
     test_sample_1,
@@ -119,7 +118,10 @@ def add_sample(client):
 
 @pytest.fixture
 def add_task(client):
-    """Fixture to add a task to the sample in the queue queue, since it is required for alot of test cases."""
+    """
+    Fixture to add a task to the sample in the queue queue,
+    since it is required for alot of test cases.
+    """
     resp = client.get("/mxcube/api/v0.1/queue")
 
     assert resp.status_code == 200 and json.loads(resp.data).get("1:05")

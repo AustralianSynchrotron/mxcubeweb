@@ -46,8 +46,7 @@ class BeamAdapter(ActuatorAdapterBase):
         aperture_list, current_aperture = self._get_aperture()
 
         beam_info_dict.update(
-            {"apertureList": aperture_list,
-             "currentAperture": current_aperture}
+            {"apertureList": aperture_list, "currentAperture": current_aperture}
         )
 
         return HOBeamValueModel(**{"value": beam_info_dict})

@@ -6,7 +6,6 @@ from mxcube3.core.models.adaptermodels import (
     FloatValueModel,
 )
 
-
 class MotorAdapter(ActuatorAdapterBase):
     def __init__(self, ho, *args, **kwargs):
         """

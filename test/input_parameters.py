@@ -91,7 +91,12 @@ test_edit_task = {
     "checked": True,
     "label": "Data Collection",
     "limsResultData": {
-        "limsTaskLink": "https://your.limsresults.org/ispyb/user/viewResults.do?reqCode=display&dataCollectionId=null"
+        "limsTaskLink": "".join(
+            (
+                "https://your.limsresults.org/ispyb/user/viewResults.do",
+                "?reqCode=display&dataCollectionId=null",
+            )
+        )
     },
     "parameters": {
         "detector_mode": [],

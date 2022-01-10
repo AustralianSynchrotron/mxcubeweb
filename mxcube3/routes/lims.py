@@ -2,6 +2,8 @@
 from subprocess import check_output
 from os.path import isfile, join
 import logging
+from os.path import isfile, join
+from subprocess import check_output
 
 from flask import Blueprint, jsonify, Response, send_file, request, render_template
 
@@ -111,9 +113,9 @@ def init_route(app, server, url_prefix):
                 if result_file_test("characterisation-results.js"):
                     try:
                         url_list = data["limsResultData"]["workflow_result_url_list"]
-                    except Exception as ex:
+                    except Exception as e:
                         logging.getLogger("MX3.HWR").warning(
-                            "Error retrieving wf url list, {0}".format(ex.message)
+                            "Error retrieving wf url list, {0}".format(str(e))
                         )
                         url_list = None
 
