@@ -1,95 +1,110 @@
-import json
-import sys
-
-# Python 2 and 3 compatibility
-if sys.version_info[0] >= 3:
-    unicode = str
+from wrapper.api_client import APIClient
 
 
-def test_get_sample_list(client):
+def test_get_sample_list(client: APIClient) -> None:
+    """Checks retrieval of the samples list from lims.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Checks retrieval of the samples list from lims
-    """
-    resp = client.get("/mxcube/api/v0.1/sample_changer/samples_list")
-    data = json.loads(resp.data)
+    data = client.sample_changer.get("/samples_list")
 
     assert isinstance(data["sampleList"], dict)
     assert isinstance(data["sampleOrder"], list)
 
 
-def test_get_sc_state(client):
+def test_get_sc_state(client: APIClient) -> None:
+    """Checks retrieval of the sample changer state.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Checks retrieval of the sample changer state
+    assert isinstance(client.sample_changer.state, str)
+
+
+def test_get_loaded_sample(client: APIClient) -> None:
+    """Checks retrieval of the sample changer loaded sample.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    resp = client.get("/mxcube/api/v0.1/sample_changer/state")
-    data = json.loads(resp.data)
+    data = client.sample_changer.get("/loaded_sample")
 
-    assert isinstance(data["state"], unicode)
+    assert isinstance(data["address"], str)
+    assert isinstance(data["barcode"], str)
 
 
-def test_get_loaded_sample(client):
+def test_get_sc_contents_view(client: APIClient) -> None:
+    """Checks retrieval of the sample changer contents.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Checks retrieval of the sample changer loaded sample
-    """
-    resp = client.get("/mxcube/api/v0.1/sample_changer/loaded_sample")
-    data = json.loads(resp.data)
+    contents_data = client.sample_changer.get("/contents")
+    capacity_data = client.sample_changer.get("/capacity")
 
-    assert isinstance(data["address"], unicode)
-    assert isinstance(data["barcode"], unicode)
-
-
-def test_get_sc_contents_view(client):
-    """
-    Checks retrieval of the sample changer contents
-    """
-    resp = client.get("/mxcube/api/v0.1/sample_changer/contents")
-    data = json.loads(resp.data)
-    resp = client.get("/mxcube/api/v0.1/sample_changer/capacity")
-    capacity = json.loads(resp.data)["capacity"]
-
-    assert isinstance(data["children"], list)
-    assert len(data["children"]) == capacity["num_baskets"]  # pucks
+    assert isinstance(contents_data["children"], list)
+    assert (
+        len(contents_data["children"]) == capacity_data["capacity"]["num_baskets"]
+    )  # pucks
 
     num_samples = 0
-    for basket in data["children"]:
+    for basket in contents_data["children"]:
         num_samples += len(basket["children"])
 
-    assert num_samples == capacity["num_samples"]  # samples
+    assert num_samples == capacity_data["capacity"]["num_samples"]  # samples
 
 
-def test_get_maintenance_cmds(client):
+def test_get_maintenance_cmds(client: APIClient) -> None:
+    """Checks retrieval of the sample changer manteniance commands.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Checks retrieval of the sample changer manteniance commands
-    """
-    resp = client.get("/mxcube/api/v0.1/sample_changer/get_maintenance_cmds")
-    data = json.loads(resp.data)
+    data = client.sample_changer.get("/get_maintenance_cmds")
 
     assert isinstance(data["cmds"], list)
 
 
-def test_get_global_state(client):
+def test_get_global_state(client: APIClient) -> None:
+    """Checks retrieval of the sample changer global state.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Checks retrieval of the sample changer global state
-    """
-    resp = client.get("/mxcube/api/v0.1/sample_changer/get_global_state")
-    data = json.loads(resp.data)
+    data = client.sample_changer.get("/get_global_state")
 
     assert isinstance(data["commands_state"], dict)
-    assert isinstance(data["message"], unicode)
+    assert isinstance(data["message"], str)
     assert isinstance(data["state"], dict)
 
 
-def test_get_initial_state(client):
+def test_get_initial_state(client: APIClient) -> None:
+    """Checks retrieval of the sample changer initial state.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Checks retrieval of the sample changer initial state
-    """
-    resp = client.get("/mxcube/api/v0.1/sample_changer/get_initial_state")
-    data = json.loads(resp.data)
+    data = client.sample_changer.get("/get_initial_state")
 
     assert isinstance(data["cmds"], dict)
     assert isinstance(data["cmds"]["cmds"], list)
     assert isinstance(data["contents"], dict)
     assert isinstance(data["global_state"], dict)
     assert isinstance(data["loaded_sample"], dict)
-    assert isinstance(data["msg"], unicode)
-    assert isinstance(data["state"], unicode)
+    assert isinstance(data["msg"], str)
+    assert isinstance(data["state"], str)

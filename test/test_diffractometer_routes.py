@@ -1,68 +1,67 @@
-import json
-import random
-import sys
-
-# Python 2 and 3 compatibility
-if sys.version_info[0] >= 3:
-    unicode = str
+import pytest
+from wrapper.api_client import APIClient
 
 
-def test_get_phase_list(client):
+def test_get_phase_list(client: APIClient) -> None:
+    """Checks retrieval of phase list and if the returned data is list.
+    Does not test if the actual phases in the list are correct.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Checks retrieval of phase list and if the returned data is list.
-    Does not test if the actual phases in the list are correct
-    """
-    resp = client.get("/mxcube/api/v0.1/diffractometer/phaselist")
-    data = json.loads(resp.data)
-
+    data = client.diffractometer.get("/phaselist")
     assert isinstance(data["current_phase"], list)
 
 
-def test_get_phase(client):
+def test_get_phase(client: APIClient) -> None:
+    """Checks if current phase is one of the phases in the phase list.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Checks if current phase is one of the phases in the phase list.
-    """
-    resp = client.get("/mxcube/api/v0.1/diffractometer/phaselist")
-    data = json.loads(resp.data)
-
-    phase_list = data["current_phase"]
-
-    resp = client.get("/mxcube/api/v0.1/diffractometer/phase")
-    data = json.loads(resp.data)
-
-    phase = data["current_phase"]
-
-    assert phase in phase_list
+    data = client.diffractometer.get("/phaselist")
+    assert client.diffractometer.phase in data["current_phase"]
 
 
-def test_set_phase(client):
-    """
-    Sets phase to a phase P (any phase in the phase list), checks if the
+@pytest.mark.parametrize(
+    "new_phase",
+    [
+        "Transfer",
+        "Centring",
+        "DataCollection",
+        "BeamLocation",
+    ],
+)
+def test_set_phase(client: APIClient, new_phase: str) -> None:
+    """Sets phase to a phase P (any phase in the phase list), checks if the
     actual phase after set_phase is P.
 
     Moves the phase back to the original phase OP, and verifies that the
-    current phase after the move is OP
+    current phase after the move is OP.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
+    new_phase : str
+        Phase to put the diffractometer into.
     """
-    # Get current phase
-    resp = client.get("/mxcube/api/v0.1/diffractometer/phase")
-    original_phase = json.loads(resp.data)["current_phase"]
+    # Get current phase.
+    original_phase = client.diffractometer.phase
 
-    resp = client.get("/mxcube/api/v0.1/diffractometer/phaselist")
-    data = json.loads(resp.data)
-    phase_list = data["current_phase"]
+    # Change phase to new phase.
+    client.diffractometer.put("/phase", data={"phase": new_phase})
 
-    new_phase = phase_list[random.randint(0, len(phase_list) - 1)]
+    # Verify the phase was changed successfully.
+    assert client.diffractometer.phase == new_phase
 
-    # Set a phase (any in the phase list)
-    resp = client.put(
-        "/mxcube/api/v0.1/diffractometer/phase",
-        data=json.dumps({"phase": new_phase}),
-        content_type="application/json",
-    )
+    # Revert phase back to its original value.
+    client.diffractometer.put("/phase", data={"phase": original_phase})
 
-    # Retrieve current phase
-    resp = client.get("/mxcube/api/v0.1/diffractometer/phase")
-    actual_phase = json.loads(resp.data)["current_phase"]
 
     # Move phase back to its original value
     resp = client.put(
@@ -81,59 +80,70 @@ def test_get_aperture(client):
     resp = client.get("/mxcube/api/v0.1/diffractometer/aperture")
     data = json.loads(resp.data)
 
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
+    """
+    data = client.diffractometer.get("/aperture")
     assert isinstance(data["currentAperture"], int)
     assert isinstance(data["apertureList"], list)
 
 
-def test_set_aperture(client):
-    """
-    Sets the aperture to an aperture AP belonging to the list of valid
+@pytest.mark.parametrize(
+    "new_aperture,should_change",
+    [(10, True), (12, False), ("20", False), (50, True), ("abcd", False)],
+)
+def test_set_aperture(
+    client: APIClient,
+    new_aperture: int,
+    should_change: bool,
+) -> None:
+    """Sets the aperture to an aperture AP belonging to the list of valid
     apertures and verifies that the aperture actually changed to AP.
 
     Moves the aperture back to its original value and verifies that the
-    original value also is the current
+    original value also is the current.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
+    new_aperture : int
+        New aperture value.
+    should_change : bool
+        True if the change should succeed, False if it should fail.
     """
+    original_aperture = client.diffractometer.aperture
 
-    resp = client.get("/mxcube/api/v0.1/diffractometer/aperture")
-    data = json.loads(resp.data)
+    # Attempt to set the aperture.
+    client.diffractometer.put("/aperture", data={"diameter": new_aperture})
+    assert (client.diffractometer.aperture == new_aperture) == should_change
 
-    original_aperture = data["currentAperture"]
-
-    ap = data["apertureList"][random.randint(0, len(data["apertureList"]) - 1)]
-
-    resp = client.put(
-        "/mxcube/api/v0.1/diffractometer/aperture",
-        data=json.dumps({"diameter": ap}),
-        content_type="application/json",
-    )
-
-    resp = client.get("/mxcube/api/v0.1/diffractometer/aperture")
-    actual_aperture = json.loads(resp.data)["currentAperture"]
-
-    resp = client.put(
-        "/mxcube/api/v0.1/diffractometer/aperture",
-        data=json.dumps({"diameter": original_aperture}),
-        content_type="application/json",
-    )
-
-    resp = client.get("/mxcube/api/v0.1/diffractometer/aperture")
-    actual_original_aperture = json.loads(resp.data)["currentAperture"]
-
-    assert ap == actual_aperture
-    assert actual_original_aperture == original_aperture
+    # Set aperture back to original value.
+    client.diffractometer.put("/aperture", data={"diameter": original_aperture})
+    assert client.diffractometer.aperture == original_aperture
 
 
-def test_get_md_plate_mode(client):
+def test_get_md_plate_mode(client: APIClient) -> None:
+    """Simply checks if the route runs and does not throw any exceptions.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Simply checks if the route runs and does not throws any exceptions
-    """
-    resp = client.get("/mxcube/api/v0.1/diffractometer/platemode")
-    assert resp.status_code == 200
+    assert isinstance(client.diffractometer.md_in_plate_mode, bool)
 
 
-def test_get_diffractometer_info(client):
+def test_get_diffractometer_info(client: APIClient) -> None:
+    """Simply checks if the route runs and does not throws any exceptions.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Simply checks if the route runs and does not throws any exceptions
-    """
-    resp = client.get("/mxcube/api/v0.1/diffractometer/info")
-    assert resp.status_code == 200
+    expected_keys = ["currentPhase", "phaseList", "useSC"]
+    data = client.diffractometer.get("/info")
+    assert all([key in data for key in expected_keys])

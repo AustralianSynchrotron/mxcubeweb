@@ -65,7 +65,10 @@ def init_route(app, server, url_prefix):
         # Not inhouse user so not allowed to take control by force,
         # return error code
         if not current_user.isstaff():
-            return make_response("", 409)
+            # When running tests we need to be able to force a user session to become
+            # master, regardless of whether it is considered to be "inhouse".
+            if not server.flask.testing:
+                return make_response("", 409)
 
         toggle_operator(current_user.username, "You were given control")
 

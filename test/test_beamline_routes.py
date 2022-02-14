@@ -1,5 +1,4 @@
-import json
-import sys
+from wrapper.api_client import APIClient
 
 # Python 2 and 3 compatibility
 if sys.version_info[0] >= 3:
@@ -43,6 +42,9 @@ def test_beamline_get_all_attribute(client):
         "energy.wavelength",
         "fast_shutter",
         "flux",
+        "transmission",
+    ],
+    "machineinfo": [
         "machine_info",
         "resolution",
         "safety_shutter",
@@ -51,17 +53,23 @@ def test_beamline_get_all_attribute(client):
 
     assert isinstance(data["hardwareObjects"], dict)
     assert isinstance(data["actionsList"], list)
-    assert isinstance(data["path"], unicode)
+    assert isinstance(data["path"], str)
     assert len(data["energyScanElements"]) == 31
     assert isinstance(data["availableMethods"], dict)
+    expected = sum([val for key, val in BEAMLINE_ATTRS.items()], [])
+    assert all(attr in actual for attr in expected)
     assert len(actual) == len(expected)
 
 
-def test_beamline_get_attribute(client):
-    """
-    Tests retrieval of all the beamline attributes (one by one), checks that
+def test_beamline_get_attribute(client: APIClient):
+    """Tests retrieval of all the beamline attributes (one by one), checks that
     the data returned at-least contain a minimal set of keys that make up a
-    'beamline attribute'
+    'beamline attribute'.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
     bl_attrs = [
         ("safety_shutter", "nstate"),
@@ -79,23 +87,20 @@ def test_beamline_get_attribute(client):
         resp = client.get(f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}")
         data = json.loads(resp.data)
 
-        # Check for minimal set of attributes
-        keys = ["name", "state", "value"]
-
-        for key in keys:
-            assert key in data
-
-        assert data["available"] is True
-        assert resp.status_code == 200
+                assert data["available"] is True
 
 
-def test_beamline_set_attribute(client):
-    """
-    Tests set on the writable attributes
+def test_beamline_set_attribute(client: APIClient):
+    """Tests set on the writable attributes
 
     Basically only tests that the set command executes without unexpected
     errors. Reads the attributes current value and sets it to the same, so
     that the test can be safely executed on a beamline.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
     bl_attrs = [
         ("resolution", "motor"),
@@ -111,7 +116,7 @@ def test_beamline_set_attribute(client):
         resp = client.get(f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}")
         data = json.loads(resp.data)
 
-        new_value = data.get("value")
+                new_value = data.get("value")
 
         resp = client.put(
             f"/mxcube/api/v0.1/beamline/{adapter_type}/value",
@@ -122,13 +127,36 @@ def test_beamline_set_attribute(client):
         resp = client.get(f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}")
         data = json.loads(resp.data)
 
-        assert data.get("value", None) == new_value
 
+def test_available_methods(client: APIClient):
+    """Test expected beamline methods are defined and in expected state.
 
-def test_get_beam_info(client):
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
-    Tests retrieval of information regarding the beam, and that the data is
-    returned on the expected format
+    data = client.beamline.get("/")
+    expected_vals = [
+        ("characterisation", True),
+        ("datacollection", True),
+        ("energy_scan", True),
+        ("helical", True),
+        ("mesh_scan", False),
+        ("xrf_scan", True),
+    ]
+    for key, expected_val in expected_vals:
+        assert data["availableMethods"][key] == expected_val
+
+
+def test_get_beam_info(client: APIClient):
+    """Tests retrieval of information regarding the beam, and that the data is
+    returned in the expected format.
+
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
     """
     resp = client.get("/mxcube/api/v0.1/beamline/beam/info")
     data = json.loads(resp.data)
@@ -141,12 +169,14 @@ def test_get_beam_info(client):
     assert isinstance(data["size_y"], float)
 
 
-def test_get_data_path(client):
-    """
-    Retrieve data path, this is specific for each beamline.
-    """
+def test_get_data_path(client: APIClient):
+    """Retrieve data path, this is specific for each beamline.
 
-    resp = client.get("/mxcube/api/v0.1/beamline/datapath")
-    data = json.loads(resp.data)
-    assert isinstance(data["path"], unicode)
-    assert len(data) > 0
+    Parameters
+    ----------
+    client : APIClient
+        Authenticated client session.
+    """
+    path = client.beamline.datapath
+    assert isinstance(path, str)
+    assert len(path) > 0

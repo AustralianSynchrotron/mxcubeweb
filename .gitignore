@@ -76,3 +76,4 @@ ui/package-lock.json
 # OS
 .DS_Store
 ANSTO
+mxcube.log.*
