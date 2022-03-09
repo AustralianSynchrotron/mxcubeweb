@@ -11,10 +11,10 @@ ENV USER root
 
 # Install system paackges
 RUN apt-get update --fix-missing && apt-get -y upgrade && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y mate-desktop-environment-core && \
-    apt-get install -y apt-utils curl git sudo build-essential wget \
-    tightvncserver emacs xemacs21 vim procps && \
-    apt-get install -y bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1
+  DEBIAN_FRONTEND=noninteractive apt-get install -y mate-desktop-environment-core && \
+  apt-get install -y apt-utils curl git sudo build-essential wget \
+  tightvncserver emacs xemacs21 vim procps && \
+  apt-get install -y bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1
 
 RUN mkdir /root/.vnc && echo "mxcube" | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd
 RUN touch /root/.Xresources && touch /root/.Xauthority
@@ -39,11 +39,11 @@ RUN conda init bash
 WORKDIR /opt
 
 # Install MXCuBE3
-COPY conda-install.sh /opt/conda-install.sh
+COPY ./docker/conda-install.sh /opt/conda-install.sh
 RUN cd /opt && chmod +x conda-install.sh && sync && ./conda-install.sh
 
-COPY mxcube /usr/local/bin/
-COPY docker-entrypoint.sh /usr/local/bin/
+COPY ./docker/mxcube /usr/local/bin/
+COPY ./docker/docker-entrypoint.sh /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["/bin/bash"]
 
