@@ -10,7 +10,7 @@ steps:
     image: python:3.9-alpine
     commands:
       - env | sort
-      - sudo apk add openldap-dev git
+      - apk add openldap-dev git
       - python -m pip install -r requirements.txt
       - pre-commit run --all-files
 
