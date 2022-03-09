@@ -10,6 +10,7 @@ steps:
     image: python:3.9
     commands:
       - env | sort
+      - conda env create --f conda-environment.yml
       - pre-commit run --all-files
 
   - name: docker-push-dev
