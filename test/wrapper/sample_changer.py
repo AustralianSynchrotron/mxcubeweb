@@ -1,4 +1,5 @@
 from flask.testing import FlaskClient
+
 from .base import Base
 
 SAMPLE_CHANGER_ROUTE = "/sample_changer"
@@ -17,7 +18,9 @@ class SampleChanger(Base):
         Route where the enpoints can be accessed.
     """
 
-    def __init__(self, client: FlaskClient, base_url: str, route: str = SAMPLE_CHANGER_ROUTE) -> None:
+    def __init__(
+        self, client: FlaskClient, base_url: str, route: str = SAMPLE_CHANGER_ROUTE
+    ) -> None:
         super().__init__(client, base_url, route)
 
     @property

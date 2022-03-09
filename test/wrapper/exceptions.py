@@ -1,5 +1,6 @@
 class MXCubeAPIError(Exception):
-    """ MXCube API wrapper base exception. """
+    """MXCube API wrapper base exception."""
+
 
 class AuthFailure(MXCubeAPIError):
     """Raised when there is a general authentication error

@@ -1,4 +1,5 @@
 from flask.testing import FlaskClient
+
 from .base import Base
 
 BEAMLINE_ROUTE = "/beamline"
@@ -17,7 +18,9 @@ class Beamline(Base):
         Route where the enpoints can be accessed.
     """
 
-    def __init__(self, client: FlaskClient, base_url: str, route: str = BEAMLINE_ROUTE) -> None:
+    def __init__(
+        self, client: FlaskClient, base_url: str, route: str = BEAMLINE_ROUTE
+    ) -> None:
         """[summary]
 
         Parameters

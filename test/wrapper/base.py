@@ -3,6 +3,7 @@ from typing import List, Union
 
 from flask.testing import FlaskClient
 from werkzeug.test import TestResponse
+
 from .exceptions import MXCubeAPIError
 
 
@@ -24,7 +25,9 @@ class Base:
         self._base_url = base_url
         self._route = route
 
-    def _check_response(self, response: TestResponse, expected_codes: List[int], is_json: bool) -> None:
+    def _check_response(
+        self, response: TestResponse, expected_codes: List[int], is_json: bool
+    ) -> None:
         """Check the REST response for signs that the
         request resulted in an error state.
 
@@ -45,10 +48,20 @@ class Base:
         MXCubeAPIError
             When the REST response indicates an error has occured.
         """
-        if response.status_code not in expected_codes or is_json and not response.is_json:
+        if (
+            response.status_code not in expected_codes
+            or is_json
+            and not response.is_json
+        ):
             raise MXCubeAPIError(response.data.decode("utf-8"))
 
-    def get(self, endpoint: str, headers: dict = {}, expected_codes: List[int] = [200], is_json: bool = True) -> Union[dict, list, int, float, str, None]:
+    def get(
+        self,
+        endpoint: str,
+        headers: dict = None,
+        expected_codes: List[int] = [200],  # noqa: B006
+        is_json: bool = True,
+    ) -> Union[dict, list, int, float, str, None]:
         """Performs a GET request to the MXCube3 REST API and validates the request
         did not result in an error state occurring.
 
@@ -71,11 +84,20 @@ class Base:
         Union[dict, list, int, float, str, None]
             Converted JSON object if data was returned in the response.
         """
-        resp = self._client.get("".join([self._base_url, self._route, endpoint]), headers=headers)
+        resp = self._client.get(
+            "".join([self._base_url, self._route, endpoint]), headers=headers
+        )
         self._check_response(resp, expected_codes, is_json)
         return resp.json
 
-    def post(self, endpoint: str, data: Union[dict, list, int, float, str], headers: dict = {}, expected_codes: List[int] = [200], is_json: bool = False) -> Union[dict, list, int, float, str, None]:
+    def post(
+        self,
+        endpoint: str,
+        data: Union[dict, list, int, float, str],
+        headers: dict = None,
+        expected_codes: List[int] = [200],  # noqa: B006
+        is_json: bool = False,
+    ) -> Union[dict, list, int, float, str, None]:
         """Performs a POST request to the MXCube3 REST API and validates the request
         did not result in an error state occurring.
 
@@ -109,7 +131,14 @@ class Base:
         self._check_response(resp, expected_codes, is_json)
         return resp.json
 
-    def put(self, endpoint: str, data: Union[dict, list, int, float, str], headers: dict = {}, expected_codes: List[int] = [200], is_json: bool = False) -> Union[dict, list, int, float, str, None]:
+    def put(
+        self,
+        endpoint: str,
+        data: Union[dict, list, int, float, str],
+        headers: dict = None,
+        expected_codes: List[int] = [200],  # noqa: B006
+        is_json: bool = False,
+    ) -> Union[dict, list, int, float, str, None]:
         """Performs a PUT request to the MXCube3 REST API and validates the request
         did not result in an error state occurring.
 

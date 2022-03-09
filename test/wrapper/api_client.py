@@ -1,11 +1,12 @@
 from flask.testing import FlaskClient
+
 from .base import Base
-from .exceptions import AuthFailure
-from .ra import RemoteAccess
-from .diffractometer import Diffractometer
 from .beamline import Beamline
-from .sample_changer import SampleChanger
+from .diffractometer import Diffractometer
+from .exceptions import AuthFailure
 from .queue import Queue
+from .ra import RemoteAccess
+from .sample_changer import SampleChanger
 
 TEST_USER = "idtest0"
 TEST_PASS = "password"
@@ -13,7 +14,7 @@ TEST_BASE_URL = "/mxcube/api/v0.1"
 
 
 class APIClient(Base):
-    """ Simple wrapper to call MXCube Flask API endpoints programmatically. """
+    """Simple wrapper to call MXCube Flask API endpoints programmatically."""
 
     def __init__(self, client: FlaskClient, base_url: str = TEST_BASE_URL) -> None:
         """
@@ -98,7 +99,12 @@ class APIClient(Base):
         password : str
             User password.
         """
-        data = self.post("/login/", {"proposal": username, "password": password}, expected_codes=[200, 302], is_json=False)
+        data = self.post(
+            "/login/",
+            {"proposal": username, "password": password},
+            expected_codes=[200, 302],
+            is_json=False,
+        )
         if data.get("code") != "ok":
             raise AuthFailure("Failed to authenticate with the MXCube API!")
 
@@ -113,6 +119,5 @@ class APIClient(Base):
         return self.get("/login/login_info")
 
     def signout(self) -> None:
-        """Calls the signout endpoint to log out of the user session.
-        """
+        """Calls the signout endpoint to log out of the user session."""
         self.get("/login/signout", headers={"Connection": "close"}, is_json=False)

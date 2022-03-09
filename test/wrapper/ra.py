@@ -1,4 +1,5 @@
 from flask.testing import FlaskClient
+
 from .base import Base
 
 RA_ROUTE = "/ra"
@@ -17,7 +18,9 @@ class RemoteAccess(Base):
         Route where the enpoints can be accessed.
     """
 
-    def __init__(self, client: FlaskClient, base_url: str, route: str = RA_ROUTE) -> None:
+    def __init__(
+        self, client: FlaskClient, base_url: str, route: str = RA_ROUTE
+    ) -> None:
         super().__init__(client, base_url, route)
 
     @property
@@ -45,7 +48,7 @@ class RemoteAccess(Base):
         return any(
             map(
                 lambda observer: observer.get("requestsControl", False),
-                data["data"]["observers"]
+                data["data"]["observers"],
             )
         )
 
