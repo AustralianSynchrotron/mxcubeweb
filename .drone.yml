@@ -11,7 +11,8 @@ steps:
     commands:
       - env | sort
       - apk add openldap-dev git
-      - python -m pip install -r requirements.txt
+      - python3 -m pip install --upgrade pip
+      - python3 -m pip install -r requirements.txt
       - pre-commit run --all-files
 
   - name: docker-push-dev
