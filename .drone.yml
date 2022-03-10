@@ -10,7 +10,7 @@ steps:
     image: bitnami/python:3.9-debian-10
     commands:
       - env | sort
-      - apt-get install libldap2-dev
+      - apt install -y build-essential libsasl2-dev libldap2-dev
       - python -m pip install -U wheel
       - python -m pip install -U -r requirements.txt
       - pre-commit run --all-files
