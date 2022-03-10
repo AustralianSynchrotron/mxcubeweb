@@ -34,8 +34,6 @@ repos:
         exclude: ^(meta\.yaml|.drone.yml)$
       - id: mixed-line-ending
         args: ["--fix=lf"]
-      - id: no-commit-to-branch
-        args: [--branch, mxcubecore_ansto]
       - id: requirements-txt-fixer
   - repo: https://github.com/PyCQA/isort
     rev: 5.10.1

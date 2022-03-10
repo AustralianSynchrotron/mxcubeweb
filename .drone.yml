@@ -7,12 +7,10 @@ trigger:
     - refs/heads/main
 steps:
   - name: pylint
-    image: python:3.9-alpine
+    image: bitnami/python:3.9-debian-10
     commands:
       - env | sort
-      - apk add openldap-dev git
-      - python3 -m pip install --upgrade pip
-      - python3 -m pip install -r requirements.txt
+      - python -m pip install -r requirements.txt
       - pre-commit run --all-files
 
   - name: docker-push-dev
