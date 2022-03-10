@@ -10,7 +10,9 @@ steps:
     image: bitnami/python:3.9-debian-10
     commands:
       - env | sort
-      - python -m pip install -r requirements.txt
+      - apt-get install libsasl2-dev python-dev libldap2-dev libssl-dev
+      - python -m pip install -U wheel
+      - python -m pip install -U -r requirements.txt
       - pre-commit run --all-files
 
   - name: docker-push-dev
