@@ -2,28 +2,19 @@
 # Dockerfile to run MXCuBE web server
 ##############################################################################
 
-FROM debian:10
-MAINTAINER Marcus Oscarsson <marcus.oscarsson@esrf.fr>
+FROM debian:11
+LABEL author="Marcus Oscarsson <marcus.oscarsson@esrf.fr>"
+LABEL maintainer="ANSTO, Clayton Synchrotron"
 
 ENV PATH /opt/conda/bin:$PATH
 ENV TERM linux
 ENV USER root
 
-# Install system paackges
-RUN apt-get update --fix-missing && apt-get -y upgrade && \
-  DEBIAN_FRONTEND=noninteractive apt-get install -y mate-desktop-environment-core && \
-  apt-get install -y apt-utils curl git sudo build-essential wget \
-  tightvncserver emacs xemacs21 vim procps && \
-  apt-get install -y bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1
-
-RUN mkdir /root/.vnc && echo "mxcube" | vncpasswd -f > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd
-RUN touch /root/.Xresources && touch /root/.Xauthority
-
-RUN \
-  wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - && \
-  echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
-  apt-get update && \
-  apt-get install -y google-chrome-stable
+# Install system packages
+RUN apt update --fix-missing && apt -y upgrade && \
+  apt install -y apt-utils curl git sudo build-essential wget vim \
+  bzip2 ca-certificates libglib2.0-0 libxext6 libsm6 libxrender1 \
+  libgl1-mesa-glx libxi6 libsasl2-dev python-dev libldap2-dev libssl-dev
 
 RUN wget --quiet https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh && \
   /bin/bash ~/miniconda.sh -b -p /opt/conda && \
@@ -38,13 +29,24 @@ RUN conda init bash
 
 WORKDIR /opt
 
-# Install MXCuBE3
-COPY ./docker/conda-install.sh /opt/conda-install.sh
-RUN cd /opt && chmod +x conda-install.sh && sync && ./conda-install.sh
+# Define conda environment and Install local MXCuBE3
+COPY .git /opt/.git
+COPY . /opt/mxcube3
+ENV CONDA_ENV mxcube
+RUN conda update -y -n base -c defaults conda
+RUN conda env create -f /opt/mxcube3/conda-environment.yml
 
-COPY ./docker/mxcube /usr/local/bin/
-COPY ./docker/docker-entrypoint.sh /usr/local/bin/
+RUN conda init bash && . ~/.bashrc && conda activate $CONDA_ENV && \
+  pip install -i https://pypi.asci.synchrotron.org.au/root/pypi/+simple \
+  --extra-index-url https://pypi.asci.synchrotron.org.au/mx3/dev -r /opt/mxcube3/requirements.txt
+
+# Set EPICS NAMESERVER address to access PVs on the MX3 network
+ENV EPICS_CA_ADDR_LIST=10.244.101.10
+
+COPY docker/mxcube /usr/local/bin/
+COPY docker/docker-entrypoint.sh /usr/local/bin/
+RUN chmod 765 /usr/local/bin/docker-entrypoint.sh
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["/bin/bash"]
 
-EXPOSE 8090 8081 5901
+EXPOSE 8090 8081

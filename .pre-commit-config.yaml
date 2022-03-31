@@ -31,7 +31,7 @@ repos:
       - id: check-symlinks
       - id: check-xml
       - id: check-yaml
-        exclude: ^(meta\.yaml|.drone.yml)$
+        exclude: ^(meta\.yaml|\.drone\.yml|conda-environment\.yml)$
       - id: mixed-line-ending
         args: ["--fix=lf"]
       - id: requirements-txt-fixer
