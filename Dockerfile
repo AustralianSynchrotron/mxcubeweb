@@ -38,7 +38,8 @@ RUN conda env create -f /opt/mxcube3/conda-environment.yml
 
 RUN conda init bash && . ~/.bashrc && conda activate $CONDA_ENV && \
   pip install -i https://pypi.asci.synchrotron.org.au/root/pypi/+simple \
-  --extra-index-url https://pypi.asci.synchrotron.org.au/mx3/dev -r /opt/mxcube3/requirements.txt
+  --extra-index-url https://pypi.asci.synchrotron.org.au/mx3/dev -r /opt/mxcube3/requirements.txt && \
+  python /opt/mxcube3/docker/mxcubecore_copy_script.py
 
 # Set EPICS NAMESERVER address to access PVs on the MX3 network
 ENV EPICS_CA_ADDR_LIST=10.244.101.10
