@@ -6,20 +6,20 @@ trigger:
   ref:
     - refs/heads/main
 steps:
-  - name: pylint
-    image: bitnami/python:3.9-debian-10
+  - name: test
+    image: alpine
     commands:
       - env | sort
-      - apt update --fix-missing && apt -y upgrade
-      - apt install -y build-essential libsasl2-dev libldap2-dev python3-dev
-      - python -m pip install -U setuptools wheel
-      - python -m pip install -U -r requirements.txt
+
+  - name: pylint
+    image: python:3.9
+    commands:
+      - python pip install -i https://pypi.asci.synchrotron.org.au/root/pypi/+simple
+        --extra-index-url https://pypi.asci.synchrotron.org.au/mx3/dev -r requirements.txt
       - pre-commit run --all-files
 
   - name: docker-push-dev
     image: plugins/docker
-    when:
-      status: [success]
     settings:
       username:
         from_secret: dockerHubAccount
@@ -96,6 +96,13 @@ steps:
     image: alpine
     commands:
       - env | sort
+
+  - name: pylint
+    image: python:3.9
+    commands:
+      - python pip install -i https://pypi.asci.synchrotron.org.au/root/pypi/+simple
+        --extra-index-url https://pypi.asci.synchrotron.org.au/mx3/prod -r requirements.txt
+      - pre-commit run --all-files
 
   - name: docker-push-prod
     image: plugins/docker
