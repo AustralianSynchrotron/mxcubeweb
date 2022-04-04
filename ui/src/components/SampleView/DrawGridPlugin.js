@@ -326,7 +326,10 @@ export default class DrawGridPlugin {
       result = gd.result[this.resultType];
     }
 
-    if (typeof result !== 'undefined' && result !== null && gd.id !== null) {
+    // We create a new array to see if a result with length > 0 exists
+    const new_array = Object.values(result);
+
+    if (typeof result !== 'undefined' && result !== null && gd.id !== null && new_array.length > 0) {
       for (let nh = 0; nh < row; nh++) {
         for (let nw = 0; nw < col; nw++) {
           const index = nw + nh * col + 1;
@@ -404,7 +407,9 @@ export default class DrawGridPlugin {
       }
 
       if (!this.drawing) {
-        if (this.gridResultFormat === 'RGB') {
+        // NOTE: We have replaced RBG by PNG. For some reason, the grid result format
+        // is set to PNG rather than RGB
+        if (this.gridResultFormat === 'PNG') {
           const fillingMatrix = this.cellFillingFromData(
             gridData, gridData.numCols, gridData.numRows
           );
