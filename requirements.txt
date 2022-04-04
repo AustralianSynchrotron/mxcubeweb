@@ -32,3 +32,4 @@ scipy==1.7.3 ; python_version == '3.7'
 scipy==1.8.0 ; python_version >= '3.8'
 spectree==0.7.3
 suds-py3==1.4.5.0
+werkzeug==2.0.0
