@@ -14,7 +14,7 @@ steps:
   - name: pylint
     image: python:3.9
     commands:
-      - python pip install -i https://pypi.asci.synchrotron.org.au/root/pypi/+simple
+      - python -m pip install -i https://pypi.asci.synchrotron.org.au/root/pypi/+simple
         --extra-index-url https://pypi.asci.synchrotron.org.au/mx3/dev -r requirements.txt
       - pre-commit run --all-files
 
