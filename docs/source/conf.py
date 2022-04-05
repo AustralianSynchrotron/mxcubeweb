@@ -56,9 +56,9 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"MXCuBE3"
-copyright = u"2015, MXCuBE Collaboration"
-author = u"MXCuBE Collaboration"
+project = "MXCuBE3"
+copyright = "2015, MXCuBE Collaboration"
+author = "MXCuBE Collaboration"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -232,8 +232,8 @@ latex_documents = [
     (
         master_doc,
         "MXCuBE3.tex",
-        u"MXCuBE3 Documentation",
-        u"MXCuBE Collaboration",
+        "MXCuBE3 Documentation",
+        "MXCuBE Collaboration",
         "manual",
     ),
 ]
@@ -263,7 +263,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "mxcube3", u"MXCuBE3 Documentation", [author], 1)]
+man_pages = [(master_doc, "mxcube3", "MXCuBE3 Documentation", [author], 1)]
 
 # If true, show URL addresses after external links.
 # man_show_urls = False
@@ -278,7 +278,7 @@ texinfo_documents = [
     (
         master_doc,
         "MXCuBE3",
-        u"MXCuBE3 Documentation",
+        "MXCuBE3 Documentation",
         author,
         "MXCuBE3",
         "One line description of project.",
