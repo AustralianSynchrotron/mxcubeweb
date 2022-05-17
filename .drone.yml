@@ -30,7 +30,10 @@ steps:
         from_secret: dockerHubPassword
       repo: docker.asci.synchrotron.org.au/${DRONE_REPO,,}
       cache_from: docker.asci.synchrotron.org.au/${DRONE_REPO,,}:main
-      tag: main
+      tags:
+        - main
+        - latest
+        - ${DRONE_COMMIT}
       mtu: 1480
       build_args:
         - BUILD_GIT_BRANCH=${DRONE_COMMIT_BRANCH}
