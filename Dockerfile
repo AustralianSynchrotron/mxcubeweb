@@ -10,6 +10,10 @@ ENV PATH /opt/conda/bin:$PATH
 ENV TERM linux
 ENV USER root
 
+# Set BL_ACTIVE to true to use real devices
+ENV BL_ACTIVE=true
+ENV AUTO_FAKE=false
+
 # Install system packages
 RUN apt update --fix-missing && apt -y upgrade && \
   apt install -y apt-utils curl git sudo build-essential wget vim \
