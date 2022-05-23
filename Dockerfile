@@ -14,6 +14,10 @@ ENV USER root
 ENV BL_ACTIVE=true
 ENV AUTO_FAKE=false
 
+# Simplon API host and port
+ENV DECTRIS_DETECTOR_HOST=sim_plon_api
+ENV DECTRIS_DETECTOR_PORT=8080
+
 # Install system packages
 RUN apt update --fix-missing && apt -y upgrade && \
   apt install -y apt-utils curl git sudo build-essential wget vim \
