@@ -152,8 +152,8 @@ def init_route(app, server, url_prefix):
         return Response(status=200)
 
     @bp.route("/shapes", methods=["POST"])
-    @server.require_control
-    @server.restrict
+    # @server.require_control
+    #@server.restrict
     def update_shapes():
         """
         Update shape information.
@@ -167,7 +167,10 @@ def init_route(app, server, url_prefix):
 
         resp = jsonify(app.sample_view.update_shapes(shapes))
         resp.status_code = 200
-
+        try:
+            sviewutils.handle_grid_result_test(shapes[0])
+        except IndexError:
+            pass
         return resp
 
     @bp.route("/shapes/<sid>", methods=["DELETE"])
