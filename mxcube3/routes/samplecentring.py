@@ -171,7 +171,7 @@ def init_route(app, server, url_prefix):
         return resp
 
     @bp.route("/shapes/create_grid", methods=["POST"])
-    def create_grid():
+    async def create_grid():
         """
         Creates a grid
             :parameter shape_data: dict with shape information (id, type, ...)
