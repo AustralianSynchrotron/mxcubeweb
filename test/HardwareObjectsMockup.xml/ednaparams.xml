@@ -1,4 +1,4 @@
-<object class="ANSTO.BlueskyWorkflow" role="workflow">
+<object class="EdnaWorkflow" role="workflow">
   <bes_host>mxcube3</bes_host>
   <bes_port>8100</bes_port>
   <object href="/session" role="session"/>
@@ -23,8 +23,8 @@
     <requires>point</requires>
   </workflow>
   <workflow>
-    <title>Screen</title>
-    <path>Screen</path>
+    <title>MXPressE</title>
+    <path>MXPressE</path>
     <requires>samplegrid</requires>
   </workflow>
   <workflow>
@@ -51,15 +51,5 @@
     <title>Trouble shooting Dialog</title>
     <path>TroubleShootingWithDialog</path>
     <requires>samplegrid</requires>
-  </workflow>
-  <workflow>
-    <title>Collect</title>
-    <path>Collect</path>
-    <requires>samplegrid</requires>
-  </workflow>
-  <workflow>
-    <title>Raster</title>
-    <path>Raster</path>
-    <requires>grid</requires>
   </workflow>
 </object>
