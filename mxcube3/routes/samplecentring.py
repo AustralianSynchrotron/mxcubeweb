@@ -152,8 +152,8 @@ def init_route(app, server, url_prefix):
         return Response(status=200)
 
     @bp.route("/shapes", methods=["POST"])
-    # @server.require_control
-    #@server.restrict
+    @server.require_control
+    @server.restrict
     def update_shapes():
         """
         Update shape information.
@@ -167,8 +167,25 @@ def init_route(app, server, url_prefix):
 
         resp = jsonify(app.sample_view.update_shapes(shapes))
         resp.status_code = 200
+
+        return resp
+
+    @bp.route("/shapes/create_grid", methods=["POST"])
+    def create_grid():
+        """
+        Creates a grid
+            :parameter shape_data: dict with shape information (id, type, ...)
+            :response Content-type: application/json, the stored centred positions.
+            :statuscode: 200: no error
+            :statuscode: 409: error
+        """
+        resp = Response(status=409)
+        shapes = request.get_json().get("shapes", [])
+
+        resp = jsonify(sviewutils.update_shapes(shapes))
+        resp.status_code = 200
         try:
-            sviewutils.handle_grid_result_test(shapes[0])
+            sviewutils.handle_grid_result_from_dict(shapes[0])
         except IndexError:
             pass
         return resp
