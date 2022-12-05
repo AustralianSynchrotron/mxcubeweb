@@ -1,0 +1,18 @@
+---
+kind: pipeline
+type: docker
+name: new-commit
+trigger:
+  ref:
+    - refs/heads/main
+steps:
+  - name: pylint
+    image: python:3.9-bullseye
+    commands:
+      - apt update --fix-missing && apt -y upgrade
+      - apt install -y build-essential libsasl2-dev libldap2-dev python3-dev
+      - python -m pip install -U setuptools wheel
+      - python -m pip install -i https://pypi.asci.synchrotron.org.au/root/pypi/+simple
+        --extra-index-url https://pypi.asci.synchrotron.org.au/mx3/dev
+        --extra-index-url https://pypi.asci.synchrotron.org.au/asci/prod/+simple -r requirements.txt
+      - pre-commit run --all-files
