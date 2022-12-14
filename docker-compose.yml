@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  mxcube:
+    image: docker.asci.synchrotron.org.au/mx3/mxcube3:main
+    environment:
+      BL_ACTIVE: "True"
+      AUTO_FAKE: "false"
+      DECTRIS_DETECTOR_HOST: mx_simplon_api
+      DECTRIS_DETECTOR_PORT: 8000
+      DATA_PROCESSING_REDIS_HOST: mx_redis
+      DATA_PROCESSING_REDIS_PORT: 6379
+      BLUESKY_QUEUESERVER_API: http://bluesky-queueserver-rest:8080
+      QSERVER_HTTP_SERVER_SINGLE_USER_API_KEY: "666"
+      MD_REDIS_HOST: "10.244.101.30"
+      MD_REDIS_PORT: "6379"
+    container_name: mxcube
+    ports:
+      - "8090:8090"
+      - "8081:8081"
