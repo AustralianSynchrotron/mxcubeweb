@@ -2276,7 +2276,7 @@ websockets = ">=10.4,<11.0"
 
 [[package]]
 name = "mxcubecore"
-version = "1.76.0"
+version = "1.79.0"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.11"
@@ -2317,7 +2317,7 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
 reference = "main"
-resolved_reference = "24daf560e0b376e7e5703726e2b3f2ea87fe22b2"
+resolved_reference = "cfe04963b999387c68e80ac79b34595a46b2f76e"
 
 [[package]]
 name = "myst-parser"
