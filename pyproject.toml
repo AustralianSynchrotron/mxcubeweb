@@ -39,7 +39,7 @@ pydantic = "^1.10.2"
 PyDispatcher = "^2.0.6"
 pytz = "^2022.6"
 tzlocal = "^4.2"
-mxcubecore = {git = "https://github.com/AustralianSynchrotron/mxcubecore.git", rev = "main", extras=["prefect"]}
+mxcubecore = {git = "https://github.com/AustralianSynchrotron/mxcubecore.git", rev = "v1.79.0.0", extras=["prefect"]}
 mxcube-video-streamer = ">=1.0.0"
 bcrypt = "^4.0.1"
 
