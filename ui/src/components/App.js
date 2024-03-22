@@ -85,7 +85,6 @@ function App(props) {
 
   useEffect(() => {
     getLoginInfo();
-    serverIO.listen();
 
     return () => {
       serverIO.disconnect();
