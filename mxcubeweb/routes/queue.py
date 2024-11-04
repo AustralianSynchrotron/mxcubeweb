@@ -1,9 +1,15 @@
 import json
+
 import spectree
-
-from flask import Blueprint, Response, jsonify, request, session
-
+from flask import (
+    Blueprint,
+    Response,
+    jsonify,
+    request,
+    session,
+)
 from mxcubecore import HardwareRepository as HWR
+
 from mxcubeweb.core.models.generic import SimpleNameValue
 
 
@@ -154,7 +160,7 @@ def init_route(app, server, url_prefix):  # noqa: C901
     @server.require_control
     @server.restrict
     def set_queue():
-        app.queue.set_queue(request.get_json(), session)
+        app.queue.set_queue(request.get_json())
         return Response(status=200)
 
     @bp.route("/", methods=["POST"])
@@ -174,7 +180,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
         )
         resp.status_code = 200
 
-        server.emit("queue", {"Signal": "update"}, namespace="/hwr")
+        server.emit(
+            "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
+        )
 
         return resp
 
@@ -189,7 +197,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
         resp = jsonify(app.queue.queue_to_dict([model]))
         resp.status_code = 200
 
-        server.emit("queue", {"Signal": "update"}, namespace="/hwr")
+        server.emit(
+            "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
+        )
 
         return resp
 
@@ -200,7 +210,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
         item_pos_list = request.get_json()
 
         app.queue.delete_entry_at(item_pos_list)
-        server.emit("queue", {"Signal": "update"}, namespace="/hwr")
+        server.emit(
+            "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
+        )
 
         return Response(status=200)
 
@@ -212,7 +224,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
         qid_list = params.get("qidList", None)
         enabled = params.get("enabled", False)
         app.queue.queue_enable_item(qid_list, enabled)
-        server.emit("queue", {"Signal": "update"}, namespace="/hwr")
+        server.emit(
+            "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
+        )
 
         return Response(status=200)
 
@@ -221,7 +235,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
     @server.restrict
     def queue_swap_task_item(sid, ti1, ti2):
         app.queue.swap_task_entry(sid, int(ti1), int(ti2))
-        server.emit("queue", {"Signal": "update"}, namespace="/hwr")
+        server.emit(
+            "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
+        )
 
         return Response(status=200)
 
@@ -229,7 +245,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
     @server.require_control
     def queue_move_task_item(sid, ti1, ti2):
         app.queue.move_task_entry(sid, int(ti1), int(ti2))
-        server.emit("queue", {"Signal": "update"}, namespace="/hwr")
+        server.emit(
+            "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
+        )
 
         return Response(status=200)
 
@@ -239,7 +257,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
     def queue_set_sample_order():
         sample_order = request.get_json().get("sampleOrder", [])
         app.queue.set_sample_order(sample_order)
-        server.emit("queue", {"Signal": "update"}, namespace="/hwr")
+        server.emit(
+            "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
+        )
 
         return Response(status=200)
 
@@ -311,11 +331,10 @@ def init_route(app, server, url_prefix):  # noqa: C901
     @server.require_control
     @server.restrict
     def set_autmount():
-        automount = request.get_json()
-        app.queue.set_auto_mount_sample(automount)
-        resp = jsonify({"automount": automount})
+        data = request.get_json()
+        app.queue.set_auto_mount_sample(data.get("automount", False))
+        resp = jsonify(data)
         resp.status_code = 200
-
         return resp
 
     @bp.route("/num_snapshots", methods=["PUT"])
@@ -323,8 +342,10 @@ def init_route(app, server, url_prefix):  # noqa: C901
     @server.restrict
     def set_num_snapshots():
         data = request.get_json()
-        app.NUM_SNAPSHOTS = data.get("numSnapshots", 4)
-        resp = jsonify({"numSnapshots": data.get("numSnapshots", 4)})
+        app.queue.set_num_snapshots(data.get("numSnapshots", app.DEFAULT_NUM_SNAPSHOTS))
+        resp = jsonify(
+            {"numSnapshots": data.get("numSnapshots", app.DEFAULT_NUM_SNAPSHOTS)}
+        )
         resp.status_code = 200
 
         return resp
@@ -352,9 +373,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
     @server.require_control
     @server.restrict
     def set_autoadd():
-        autoadd = request.get_json()
-        app.queue.set_auto_add_diffplan(autoadd)
-        resp = jsonify({"auto_add_diffplan": autoadd})
+        data = request.get_json()
+        app.queue.set_auto_add_diffplan(data.get("autoadddiffplan", False))
+        resp = jsonify(data)
         resp.status_code = 200
         return resp
 

@@ -1,11 +1,13 @@
 import logging
 
-from flask import Blueprint, Response
-
+from flask import (
+    Blueprint,
+    Response,
+)
 from mxcubecore import HardwareRepository as HWR
 
-from mxcubeweb.routes import signals
 from mxcubeweb.core.util.convertutils import to_camel
+from mxcubeweb.routes import signals
 
 
 def init_route(app, server, url_prefix):
@@ -63,7 +65,7 @@ def init_route(app, server, url_prefix):
         }
 
         sample_model, sample_entry = app.queue.get_entry(sid)
-        dc_model, dc_entry = app.queue._create_dc(task)
+        dc_model, dc_entry = app.queue._create_dc()
         app.queue.set_dc_params(dc_model, dc_entry, task, sample_model)
         pt = dc_model.acquisitions[0].path_template
 

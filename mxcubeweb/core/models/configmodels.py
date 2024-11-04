@@ -1,7 +1,18 @@
-from enum import Enum
-from pydantic import BaseModel, Field
-from typing import List, Dict, Optional
 import datetime
+from enum import Enum
+from typing import (
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Union,
+)
+
+from pydantic import model_validator
+from pydantic.v1 import (
+    BaseModel,
+    Field,
+)
 
 
 class FlaskConfigModel(BaseModel):
@@ -15,11 +26,11 @@ class FlaskConfigModel(BaseModel):
     SECURITY_TRACKABLE: bool = Field(True, description="")
     USER_DB_PATH: str = Field("/tmp/mxcube-user.db", description="")
     PERMANENT_SESSION_LIFETIME: datetime.timedelta
-    CERT_KEY: str = Field("", description="Full path to signed certficate key file")
+    CERT_KEY: str = Field("", description="Full path to signed certificate key file")
     CERT_PEM: str = Field("", description="Full path to signed certificate pem file")
 
     # SIGNED for signed certificate on file
-    # ADHOC for flask to generate a certifcate,
+    # ADHOC for flask to generate a certificate,
     # NONE for no SSL
     CERT: str = Field(
         "NONE",
@@ -34,20 +45,17 @@ class UIComponentModel(BaseModel):
     step: Optional[float]
     precision: Optional[int]
     suffix: Optional[str]
-    format: Optional[str]
-    url: Optional[str]
     description: Optional[str]
-    width: Optional[int]
-    height: Optional[int]
-
-    # Set internaly not to be set through configuration
+    # Set internally not to be set through configuration
     value_type: Optional[str]
     object_type: Optional[str]
+    format: Optional[str]
 
 
 class _UICameraConfigModel(BaseModel):
     label: str
     url: str
+    format: Optional[str]
     description: Optional[str]
     width: Optional[int]
     height: Optional[int]
@@ -56,6 +64,13 @@ class _UICameraConfigModel(BaseModel):
 class _UISampleViewVideoControlsModel(BaseModel):
     id: str
     show: bool
+
+
+class _UISampleViewVideoGridSettingsModel(BaseModel):
+    id: Literal["draw_grid"]
+    show: bool
+    show_vspace: bool = False
+    show_hspace: bool = False
 
 
 class UIPropertiesModel(BaseModel):
@@ -68,14 +83,17 @@ class UICameraConfigModel(UIPropertiesModel):
 
 
 class UISampleViewVideoControlsModel(UIPropertiesModel):
-    components: List[_UISampleViewVideoControlsModel]
+    # It is important to keep the Union elements in that order; from the more specific to the more general.
+    components: List[
+        Union[_UISampleViewVideoGridSettingsModel, _UISampleViewVideoControlsModel]
+    ]
 
 
 class UIPropertiesListModel(BaseModel):
     sample_view: UIPropertiesModel
     beamline_setup: UIPropertiesModel
-    camera_setup: UICameraConfigModel
-    sample_view_video_controls: UISampleViewVideoControlsModel
+    camera_setup: Optional[UICameraConfigModel]
+    sample_view_video_controls: Optional[UISampleViewVideoControlsModel]
 
 
 class UserManagerUserConfigModel(BaseModel):
@@ -103,7 +121,7 @@ class ModeEnum(str, Enum):
 class MXCUBEAppConfigModel(BaseModel):
     VIDEO_FORMAT: str = Field("MPEG1", description="Video format MPEG1 or MJPEG")
 
-    # URL from which the client retreives the video stream (often different from
+    # URL from which the client retrieves the video stream (often different from
     # local host when running behind proxy)
     VIDEO_STREAM_URL: str = Field(
         "",
@@ -111,18 +129,19 @@ class MXCUBEAppConfigModel(BaseModel):
     )
 
     # Port from which the video_stream process (https://github.com/mxcube/video-streamer)
-    # sreams video. The process runs in seperate process (on localhost)
-    VIDEO_STREAM_PORT: str = Field("", description="Video stream PORT")
+    # streams video. The process runs in separate process (on localhost)
+    VIDEO_STREAM_PORT: int = Field(8000, description="Video stream PORT")
     USE_EXTERNAL_STREAMER: bool = Field(
         False,
         description=(
             "True to use video stream produced by external software, false otherwise"
         ),
     )
-    mode: ModeEnum = Field(ModeEnum.OSC, description="MXCuBE mode SSX or OSC")
+    mode: ModeEnum = Field(
+        ModeEnum.OSC, description="MXCuBE mode OSC, SSX-CHIP or SSX-INJECTOR"
+    )
     usermanager: UserManagerConfigModel
     ui_properties: Dict[str, UIPropertiesModel] = {}
-    adapter_properties: List = []
 
 
 class AppConfigModel(BaseModel):

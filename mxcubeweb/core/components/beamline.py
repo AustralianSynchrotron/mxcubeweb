@@ -42,7 +42,6 @@ class Beamline(ComponentBase):
                         "commandReplyArrived",
                         signals.beamline_action_done,
                     )
-                    cmd.connect("commandReady", signals.beamline_action_done)
                     cmd.connect(
                         "commandFailed",
                         signals.beamline_action_failed,
@@ -55,15 +54,11 @@ class Beamline(ComponentBase):
             msg = "error connecting to beamline actions hardware object signals"
             logging.getLogger("MX3.HWR").exception(msg)
 
-        try:
+        if HWR.beamline.xrf_spectrum:
             HWR.beamline.xrf_spectrum.connect(
                 HWR.beamline.xrf_spectrum,
                 "xrf_task_progress",
                 signals.xrf_task_progress,
-            )
-        except Exception as ex:
-            logging.getLogger("MX3.HWR").error(
-                "error loading plotting hwo: %s" % str(ex)
             )
 
     def diffractometer_init_signals(self):
@@ -83,7 +78,6 @@ class Beamline(ComponentBase):
         :return: Tuple, (list of apertures, current aperture)
         :rtype: tuple
         """
-        aperture_list, current_aperture = [], None
         beam = HWR.beamline.beam
 
         aperture_list = beam.get_available_size()["values"]
@@ -226,11 +220,15 @@ class Beamline(ComponentBase):
         :param str name: Owner / Actuator of the process/action to abort
 
         """
-        try:
+        beamline_action_names = [
+            cmd.name() for cmd in HWR.beamline.beamline_actions.get_commands()
+        ]
+
+        if name in beamline_action_names:
             HWR.beamline.beamline_actions.abort_command(name)
-        except KeyError:
+        else:
             try:
-                ho = BeamlineAdapter(HWR.beamline).get_object(name.lower())
+                ho = HWR.beamline.get_hardware_object(name.lower())
             except AttributeError:
                 pass
             else:

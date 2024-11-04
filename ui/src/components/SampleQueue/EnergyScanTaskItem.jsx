@@ -214,23 +214,23 @@ export default class EnergyScanTaskItem extends Component {
                     <ProgressBar
                       variant={pbarBsStyle}
                       striped
-                      style={{ marginBottom: '0px', height: '18px' }}
+                      style={{ marginBottom: 0, height: '18px' }}
                       min={0}
                       max={1}
-                      active={this.props.progress < 1}
+                      animated={this.props.progress < 1}
                       label={`${(this.props.progress * 100).toPrecision(3)} %`}
                       now={this.props.progress}
                     />
                   </span>
                 </span>
               </b>
-              {state === TASK_UNCOLLECTED ? (
+              {state === TASK_UNCOLLECTED && (
                 <i
                   className="fas fa-times"
                   onClick={this.deleteTask}
                   style={delTaskCSS}
                 />
-              ) : null}
+              )}
             </div>
           </div>
           <Collapse in={Boolean(show)}>

@@ -1,10 +1,8 @@
-/* eslint-disable promise/catch-or-return */
-/* eslint-disable promise/no-nesting */
-/* eslint-disable promise/prefer-await-to-then */
-/* eslint-disable sonarjs/no-duplicate-string */
-import fetch from 'isomorphic-fetch';
-import { setLoading, showErrorPanel } from './general';
+import { showErrorPanel } from './general';
 import { setQueue } from './queue'; // eslint-disable-line import/no-cycle
+import { fetchSamplesList, sendSyncWithCrims } from '../api/sampleChanger';
+import { fetchLimsSamples } from '../api/lims';
+import { hideWaitDialog, showWaitDialog } from './waitDialog';
 
 export function updateSampleList(sampleList, order) {
   return { type: 'UPDATE_SAMPLE_LIST', sampleList, order };
@@ -15,13 +13,7 @@ export function clearSampleGrid() {
 }
 
 export function showGenericContextMenu(show, id, x = 0, y = 0) {
-  return {
-    type: 'SHOW_GENERIC_CONTEXT_MENU',
-    show,
-    id,
-    x,
-    y,
-  };
+  return { type: 'SHOW_GENERIC_CONTEXT_MENU', show, id, x, y };
 }
 
 export function addSamplesToList(samplesData) {
@@ -49,33 +41,6 @@ export function addSamplesToList(samplesData) {
   };
 }
 
-export function setSampleOrderAction(order) {
-  return { type: 'SET_SAMPLE_ORDER', order };
-}
-
-/**
- * @deprecated New Sample Grid does not allowed sample reordering
- */
-export function sendSetSampleOrderAction(sampleOrder) {
-  return (dispatch) => {
-    fetch('mxcube/api/v0.1/queue/sample-order', {
-      method: 'POST',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'Content-type': 'application/json',
-      },
-      body: JSON.stringify({ sampleOrder }),
-    }).then((response) => {
-      if (response.status >= 400) {
-        throw new Error('Could not set sample order');
-      } else {
-        dispatch(setSampleOrderAction(sampleOrder));
-      }
-    });
-  };
-}
-
 export function selectSamplesAction(keys, selected = true) {
   return { type: 'SELECT_SAMPLES', keys, selected };
 }
@@ -96,74 +61,45 @@ export function setSamplesInfoAction(sampleInfoList) {
   return { type: 'SET_SAMPLES_INFO', sampleInfoList };
 }
 
-export function sendGetSampleList() {
-  return (dispatch) => {
+export function getSamplesList() {
+  return async (dispatch) => {
     dispatch(
-      setLoading(
-        true,
-        'Please wait',
-        'Retrieving sample changer contents',
-        true,
-      ),
+      showWaitDialog('Please wait', 'Retrieving sample changer contents', true),
     );
-    return fetch('mxcube/api/v0.1/sample_changer/samples_list', {
-      credentials: 'include',
-    })
-      .then((response) => response.json())
-      .then(
-        (res) => {
-          const { sampleList } = res;
-          const { sampleOrder } = res;
 
-          dispatch(updateSampleList(sampleList, sampleOrder));
-          dispatch(setQueue(res));
-          dispatch(setLoading(false));
-        },
-        () => {
-          dispatch(setLoading(false));
-          dispatch(showErrorPanel(true, 'Could not get samples list'));
-        },
-      );
+    try {
+      const json = await fetchSamplesList();
+      const { sampleList, sampleOrder } = json;
+      dispatch(updateSampleList(sampleList, sampleOrder));
+      dispatch(setQueue(json));
+    } catch {
+      dispatch(showErrorPanel(true, 'Could not get samples list'));
+    }
+
+    dispatch(hideWaitDialog());
   };
 }
 
-export function sendSyncSamples() {
-  return (dispatch) => {
-    dispatch(setLoading(true, 'Please wait', 'Synchronizing with ISPyB', true));
-    fetch('mxcube/api/v0.1/lims/synch_samples', { credentials: 'include' })
-      .then((response) => {
-        let result = '';
+export function syncSamples() {
+  return async (dispatch) => {
+    dispatch(showWaitDialog('Please wait', 'Synchronizing with ISPyB', true));
 
-        if (response.status >= 400) {
-          dispatch(setLoading(false));
-          dispatch(
-            showErrorPanel(
-              true,
-              `Synchronization with ISPyB failed ${response.headers.get(
-                'message',
-              )}`,
-            ),
-          );
-        } else {
-          result = response.json();
-        }
-
-        return result;
-      })
-      .then(
-        (json) => {
-          const { sampleList } = json;
-          const { sampleOrder } = json;
-
-          dispatch(updateSampleList(sampleList, sampleOrder));
-          dispatch(setQueue(json));
-          dispatch(setLoading(false));
-        },
-        () => {
-          dispatch(setLoading(false));
-          dispatch(showErrorPanel(true, 'Synchronization with ISPyB failed'));
-        },
+    try {
+      const json = await fetchLimsSamples();
+      dispatch(updateSampleList(json.sampleList, json.sampleOrder));
+      dispatch(setQueue(json));
+    } catch (error) {
+      dispatch(
+        showErrorPanel(
+          true,
+          `Synchronization with ISPyB failed ${error.response.headers.get(
+            'message',
+          )}`,
+        ),
       );
+    } finally {
+      dispatch(hideWaitDialog());
+    }
   };
 }
 
@@ -173,30 +109,20 @@ export function updateCrystalList(crystalList) {
 }
 
 export function syncWithCrims() {
-  return (dispatch) => {
-    fetch('mxcube/api/v0.1/sample_changer/sync_with_crims', {
-      method: 'GET',
-      headers: {
-        Accept: 'application/json',
-        'Content-type': 'application/json',
-      },
-      credentials: 'include',
-    }).then((response) => {
-      if (response.status >= 400) {
-        // throw new Error('Error while scanning sample changer');
-        dispatch(
-          showErrorPanel(
-            true,
-            `Synchronization with Crims failed ${response.headers.get(
-              'message',
-            )}`,
-          ),
-        );
-      }
-      response.json().then((crystalList) => {
-        dispatch(updateCrystalList(crystalList));
-      });
-    });
+  return async (dispatch) => {
+    try {
+      const crystalList = await sendSyncWithCrims();
+      dispatch(updateCrystalList(crystalList));
+    } catch (error) {
+      dispatch(
+        showErrorPanel(
+          true,
+          `Synchronization with Crims failed ${error.response.headers.get(
+            'message',
+          )}`,
+        ),
+      );
+    }
   };
 }
 

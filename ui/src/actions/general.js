@@ -1,7 +1,4 @@
-/* eslint-disable promise/catch-or-return */
-/* eslint-disable promise/prefer-await-to-then */
-
-import fetch from 'isomorphic-fetch';
+import { fetchDisplayImage } from '../api/detector';
 
 export function addUserMessage(records, target) {
   return {
@@ -21,23 +18,6 @@ export function clearAllUserMessages() {
 
 export function applicationFetched(data) {
   return { type: 'APPLICATION_FETCHED', data };
-}
-
-export function setLoading(
-  loading,
-  title = '',
-  message = '',
-  blocking = false,
-  abortFun = undefined,
-) {
-  return {
-    type: 'SET_LOADING',
-    loading,
-    title,
-    message,
-    blocking,
-    abortFun,
-  };
 }
 
 export function showErrorPanel(show, message = '') {
@@ -72,25 +52,12 @@ export function showConfirmClearQueueDialog(show = true) {
   };
 }
 
-export function sendDisplayImage(path, imgNum) {
-  return () => {
-    fetch(
-      `mxcube/api/v0.1/detector/display_image/?path=${path}&img_num=${imgNum}`,
-      {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          Accept: 'application/json',
-          'Content-type': 'application/json',
-        },
-      },
-    )
-      .then((response) => response.json())
-      .then((data) => {
-        window.open(
-          `https://braggy.mxcube3.esrf.fr/?file=${data.path}/image_${data.img_num}.h5.dataset`,
-          'braggy',
-        );
-      });
+export function displayImage(path, imgNum) {
+  return async () => {
+    const data = await fetchDisplayImage(path, imgNum);
+    window.open(
+      `https://braggy.mxcube3.esrf.fr/?file=${data.path}/image_${data.img_num}.h5.dataset`,
+      'braggy',
+    );
   };
 }

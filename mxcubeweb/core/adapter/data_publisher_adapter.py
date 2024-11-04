@@ -8,12 +8,12 @@ from mxcubeweb.core.adapter.adapter_base import AdapterBase
 class DataPublisherAdapter(AdapterBase):
     ATTRIBUTES = ["current_data", "all_data", "current"]
 
-    def __init__(self, ho, *args, **kwargs):
+    def __init__(self, ho, *args):
         """
         Args:
             (object): Hardware object.
         """
-        super(DataPublisherAdapter, self).__init__(ho, *args, **kwargs)
+        super(DataPublisherAdapter, self).__init__(ho, *args)
         self._all_data_list = []
         self._current_data_list = []
         self._current_info = {}
@@ -43,7 +43,7 @@ class DataPublisherAdapter(AdapterBase):
         self.emit_ho_changed()
 
     def state(self):
-        return HardwareObjectState.READY.value
+        return HardwareObjectState.READY.name
 
     def current_data(self) -> list:
         return self._current_data_list

@@ -3,7 +3,7 @@ import React from 'react';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import ReactDOM from 'react-dom';
-import withRouter from '../components/WithRouter';
+import withNavigate from '../components/withNavigate.jsx';
 import loader from '../img/loader.gif';
 
 import {
@@ -13,12 +13,9 @@ import {
   Col,
   Form,
   Button,
-  SplitButton,
   DropdownButton,
   InputGroup,
   Dropdown,
-  OverlayTrigger,
-  Tooltip,
 } from 'react-bootstrap';
 
 import { MdGridView } from 'react-icons/md';
@@ -28,9 +25,9 @@ import { LuSettings2 } from 'react-icons/lu';
 import { QUEUE_RUNNING, isCollected, hasLimsData } from '../constants';
 
 import {
-  sendGetSampleList,
+  getSamplesList,
   setViewModeAction,
-  sendSyncSamples,
+  syncSamples,
   syncWithCrims,
   filterAction,
   selectSamplesAction,
@@ -38,7 +35,6 @@ import {
 } from '../actions/sampleGrid';
 
 import {
-  clearQueue,
   deleteSamplesFromQueue,
   setEnabledSample,
   addSamplesToQueue,
@@ -54,15 +50,14 @@ import { showTaskForm } from '../actions/taskForm';
 
 import SampleGridTableContainer from './SampleGridTableContainer';
 
-import ConfirmActionDialog from '../components/GenericDialog/ConfirmActionDialog';
 import QueueSettings from './QueueSettings.jsx';
 
 import '../components/SampleGrid/SampleGridTable.css';
+import TooltipTrigger from '../components/TooltipTrigger.jsx';
 
 class SampleListViewContainer extends React.Component {
   constructor(props) {
     super(props);
-    this.onMouseDown = this.onMouseDown.bind(this);
     this.syncSamples = this.syncSamples.bind(this);
     this.mutualExclusiveFilterOption =
       this.mutualExclusiveFilterOption.bind(this);
@@ -107,17 +102,6 @@ class SampleListViewContainer extends React.Component {
   componentDidMount() {
     const localStorageViewMode = localStorage.getItem('view-mode');
     this.setViewMode(localStorageViewMode || this.props.viewMode.mode);
-  }
-
-  /**
-   * If Context menu is showed set it to false'
-   *
-   * @param {MouseEvent} e
-   */
-  onMouseDown(e) {
-    if (this.props.contextMenu.show) {
-      this.props.showGenericContextMenu(false, null, 0, 0);
-    }
   }
 
   setViewMode(mode) {
@@ -277,7 +261,13 @@ class SampleListViewContainer extends React.Component {
       if (formName === 'AddSample') {
         this.props.showTaskParametersForm('AddSample');
       } else {
-        this.props.showTaskParametersForm(formName, selected, parameters);
+        this.props.showTaskParametersForm(
+          formName,
+          selected,
+          parameters,
+          -1,
+          'samplelist',
+        );
       }
     }
   }
@@ -293,7 +283,7 @@ class SampleListViewContainer extends React.Component {
     // because they will be remove from sample List
     await this.props.setEnabledSample(manualSamples, false);
 
-    this.props.getSamples();
+    this.props.getSamplesList();
   }
 
   /**
@@ -308,6 +298,7 @@ class SampleListViewContainer extends React.Component {
     } else {
       this.props.syncSamples();
     }
+    this.props.filter({ limsSamples: true });
   }
 
   /**
@@ -456,7 +447,7 @@ class SampleListViewContainer extends React.Component {
       notInQueue: false,
       collected: false,
       notCollected: false,
-      limsFilter: false,
+      limsSamples: false,
       filterText: '',
       cellFilter: '',
       puckFilter: '',
@@ -511,7 +502,7 @@ class SampleListViewContainer extends React.Component {
     for (const sampleID of sampleIDList) {
       if (this.inQueue(sampleID)) {
         // Do not remove currently mounted sample
-        if (this.props.queue.current.sampleID !== sampleID) {
+        if (this.props.queue.currentSampleID !== sampleID) {
           samplesToRemove.push(sampleID);
         }
       } else {
@@ -627,7 +618,7 @@ class SampleListViewContainer extends React.Component {
    * Start collection
    */
   startCollect() {
-    this.props.router.navigate('/datacollection', { replace: true });
+    this.props.navigate('/datacollection', { replace: true });
     this.props.showConfirmCollectDialog();
   }
 
@@ -794,50 +785,26 @@ class SampleListViewContainer extends React.Component {
         id="sampleGridContainer"
         className="samples-grid-table-container mt-4"
       >
-        <ConfirmActionDialog
-          title="Clear sample grid ?"
-          message="This will remove all samples (and collections) from the grid,
-                    are you sure you would like to continue ?"
-          onOk={this.props.clearQueue}
-          show={this.props.general.showConfirmClearQueueDialog}
-          hide={this.props.confirmClearQueueHide}
-        />
         {this.props.loading ? (
-          <div className="center-in-box" style={{ zIndex: 1200 }}>
-            <img src={loader} className="img-centerd img-responsive" alt="" />
+          <div
+            className="center-in-box"
+            style={{ zIndex: 1200, position: 'fixed' }}
+          >
+            <img
+              src={loader}
+              className="img-centerd img-responsive"
+              width="150"
+              alt=""
+            />
           </div>
         ) : null}
         <Card className="samples-grid-table-card">
-          <Card.Header
-            onMouseDown={this.onMouseDown}
-            className="samples-grid-table-card-header"
-          >
+          <Card.Header className="samples-grid-table-card-header">
             <Row className="samples-grid-table-row-header">
               <Col sm={5} className="d-flex">
-                <SplitButton
-                  variant="outline-secondary"
-                  className="nowrap-style"
-                  id="split-button-sample-changer-selection"
-                  disabled={this.props.queue.queueStatus === QUEUE_RUNNING}
-                  title="Get samples from SC"
-                  onClick={this.getSamplesFromSC}
-                >
-                  <Dropdown.Item
-                    className="nowrap-style"
-                    eventKey="2"
-                    onClick={this.showAddSampleForm}
-                  >
-                    Create new sample
-                  </Dropdown.Item>
-                </SplitButton>
-                <span style={{ marginLeft: '1.5em' }} />
-                <OverlayTrigger
-                  placement="bottom"
-                  overlay={
-                    <Tooltip id="select-samples">
-                      Synchronise sample list with ISPyB
-                    </Tooltip>
-                  }
+                <TooltipTrigger
+                  id="sync-samples-tooltip"
+                  tooltipContent="Get and synchronise sample list with ISPyB"
                 >
                   <Button
                     className="nowrap-style"
@@ -848,22 +815,27 @@ class SampleListViewContainer extends React.Component {
                       className="fas fa-sync-alt"
                       style={{ marginRight: '0.5em' }}
                     />
-                    ISPyB
+                    Get Samples
                   </Button>
-                </OverlayTrigger>
+                </TooltipTrigger>
                 <span style={{ marginLeft: '1.5em' }} />
-                <OverlayTrigger
-                  placement="bottom"
-                  overlay={
-                    <Tooltip id="select-samples">
-                      Remove all samples from sample list and queue
-                    </Tooltip>
-                  }
+                <Button
+                  className="nowrap-style"
+                  variant="outline-secondary"
+                  onClick={this.showAddSampleForm}
+                >
+                  <i className="fas fa-plus" style={{ marginRight: '0.5em' }} />
+                  Create new sample
+                </Button>
+                <span style={{ marginLeft: '1.5em' }} />
+                <TooltipTrigger
+                  id="clear-samples-tooltip"
+                  tooltipContent="Remove all samples from sample list and queue"
                 >
                   <Button
                     className="nowrap-style"
                     variant="outline-secondary"
-                    onClick={this.props.confirmClearQueueShow}
+                    onClick={this.props.showConfirmClearQueueDialog}
                     disabled={this.props.queue.queueStatus === QUEUE_RUNNING}
                   >
                     <i
@@ -872,7 +844,7 @@ class SampleListViewContainer extends React.Component {
                     />
                     Clear sample list
                   </Button>
-                </OverlayTrigger>
+                </TooltipTrigger>
                 <span style={{ marginLeft: '1.5em' }} />
                 <Dropdown>
                   <Dropdown.Toggle
@@ -894,7 +866,7 @@ class SampleListViewContainer extends React.Component {
                 </Dropdown>
               </Col>
               <Col sm={5} className="d-flex me-auto">
-                <Form>
+                <Form onSubmit={(evt) => evt.preventDefault()}>
                   <Form.Group as={Row} className="d-flex">
                     <Form.Label
                       style={{ whiteSpace: 'nowrap' }}
@@ -1002,10 +974,10 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    getSamples: () => dispatch(sendGetSampleList()),
+    getSamplesList: () => dispatch(getSamplesList()),
     setViewMode: (mode) => dispatch(setViewModeAction(mode)),
     filter: (filterOptions) => dispatch(filterAction(filterOptions)),
-    syncSamples: () => dispatch(sendSyncSamples()),
+    syncSamples: () => dispatch(syncSamples()),
     syncSamplesCrims: () => dispatch(syncWithCrims()),
     showTaskParametersForm: bindActionCreators(showTaskForm, dispatch),
     selectSamples: (keys, selected) =>
@@ -1016,15 +988,10 @@ function mapDispatchToProps(dispatch) {
       dispatch(setEnabledSample(qidList, value)),
     deleteTask: (qid, taskIndex) => dispatch(deleteTask(qid, taskIndex)),
     deleteTaskList: (sampleIDList) => dispatch(deleteTaskList(sampleIDList)),
-    clearQueue: () => dispatch(clearQueue()),
     addSamplesToQueue: (sampleData) => dispatch(addSamplesToQueue(sampleData)),
     stopQueue: () => dispatch(stopQueue()),
-    confirmClearQueueShow: bindActionCreators(
+    showConfirmClearQueueDialog: bindActionCreators(
       showConfirmClearQueueDialog,
-      dispatch,
-    ),
-    confirmClearQueueHide: bindActionCreators(
-      showConfirmClearQueueDialog.bind(null, false),
       dispatch,
     ),
     showConfirmCollectDialog: bindActionCreators(
@@ -1039,4 +1006,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withRouter(SampleListViewContainer));
+)(withNavigate(SampleListViewContainer));

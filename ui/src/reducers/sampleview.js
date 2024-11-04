@@ -15,19 +15,6 @@ const INITIAL_STATE = {
   imageRatio: 0,
   pixelsPerMm: [0, 0],
   sourceScale: 1,
-  motorSteps: {
-    focusStep: 0.01,
-    phiStep: 90,
-    phiyStep: 0.1,
-    phizStep: 0.1,
-    sampxStep: 0.1,
-    sampyStep: 0.1,
-    kappaStep: 0.1,
-    kappaphiStep: 0.1,
-    sample_verticalStep: 0.1,
-    sample_horizontalStep: 0.1,
-    beamstop_distance: 0.01,
-  },
   apertureList: [],
   currentAperture: 0,
   currentPhase: '',
@@ -37,7 +24,6 @@ const INITIAL_STATE = {
   cinema: false,
   phaseList: [],
   drawGrid: false,
-  gridResultType: 'heatmap',
   videoMessageOverlay: { show: false, msg: '' },
   savedPointId: '',
   selectedShapes: [],
@@ -79,9 +65,6 @@ function sampleViewReducer(state = INITIAL_STATE, action = {}) {
       }
 
       return { ...state, drawGrid: !state.drawGrid, selectedGrids };
-    }
-    case 'SET_GRID_RESULT_TYPE': {
-      return { ...state, gridResultType: action.gridResultType };
     }
     case 'MEASURE_DISTANCE': {
       return { ...state, measureDistance: action.mode, distancePoints: [] };
@@ -129,17 +112,11 @@ function sampleViewReducer(state = INITIAL_STATE, action = {}) {
         beamPosition: action.info.position,
         beamShape: action.info.shape,
         beamSize: { x: action.info.size_x, y: action.info.size_y },
-        currentAperture: action.info.size_x * 1000,
+        currentAperture: action.info.label,
       };
     }
     case 'SET_CURRENT_PHASE': {
       return { ...state, currentPhase: action.phase };
-    }
-    case 'SET_STEP_SIZE': {
-      return {
-        ...state,
-        motorSteps: { ...state.motorSteps, [action.name]: action.value },
-      };
     }
     case 'SHOW_VIDEO_MESSAGE_OVERLAY': {
       return {
@@ -201,7 +178,7 @@ function sampleViewReducer(state = INITIAL_STATE, action = {}) {
         videoHash: action.data.Camera.videoHash,
         videoURL: action.data.Camera.videoURL,
         apertureList: action.data.beamInfo.apertureList,
-        currentAperture: action.data.beamInfo.size_x * 1000,
+        currentAperture: action.data.beamInfo.currentAperture,
         beamPosition: action.data.beamInfo.position,
         beamShape: action.data.beamInfo.shape,
         beamSize: {

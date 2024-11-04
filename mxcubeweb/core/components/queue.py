@@ -1,31 +1,25 @@
 # -*- coding: utf-8 -*-
-import os
-import json
-import pickle as pickle
-import redis
 import itertools
+import json
 import logging
+import os
 import re
+from functools import reduce
 
 from mock import Mock
-
-from flask_login import current_user
-
 from mxcubecore import HardwareRepository as HWR
-
-from mxcubecore.model import queue_model_objects as qmo
-from mxcubecore.model import queue_model_enumerables as qme
-
 from mxcubecore import queue_entry as qe
+from mxcubecore.HardwareObjects.Gphl import GphlQueueEntry
+from mxcubecore.model import queue_model_enumerables as qme
+from mxcubecore.model import queue_model_objects as qmo
 from mxcubecore.queue_entry.base_queue_entry import QUEUE_ENTRY_STATUS
 
-from mxcubecore.HardwareObjects.Gphl import GphlQueueEntry
-
 from mxcubeweb.core.components.component_base import ComponentBase
-from mxcubeweb.core.util.convertutils import str_to_camel, str_to_snake
 from mxcubeweb.core.models.generic import SimpleNameValue
-
-from functools import reduce
+from mxcubeweb.core.util.convertutils import (
+    str_to_camel,
+    str_to_snake,
+)
 
 # Important: same constants as in constants.js
 QUEUE_PAUSED = "QueuePaused"
@@ -47,13 +41,14 @@ ORIGIN_MX3 = "MX3"
 class Queue(ComponentBase):
     def __init__(self, app, config):
         super().__init__(app, config)
+        self.init_queue_settings()
 
     def build_prefix_path_dict(self, path_list):
         prefix_path_dict = {}
 
         for path in path_list:
             try:
-                path, run_number, img_number = qmo.PathTemplate.interpret_path(path)
+                path, run_number, _ = qmo.PathTemplate.interpret_path(path)
             except ValueError:
                 logging.getLogger("MX3.HWR").info(
                     '[QUEUE] Warning, failed to interpret path: "%s", please check path'
@@ -68,7 +63,7 @@ class Queue(ComponentBase):
         return prefix_path_dict
 
     def get_run_number(self, pt):
-        # Path templates of files not yet written to to disk, we are only
+        # Path templates of files not yet written to disk, we are only
         # interested in the prefix path
 
         pt.run_number = HWR.beamline.queue_model.get_next_run_number(pt)
@@ -270,7 +265,6 @@ class Queue(ComponentBase):
         settings = {}
 
         for setting_name in [
-            "NUM_SNAPSHOTS",
             "REMEMBER_PARAMETERS_BETWEEN_SAMPLES",
             "CENTRING_METHOD",
             "AUTO_ADD_DIFFPLAN",
@@ -284,12 +278,15 @@ class Queue(ComponentBase):
             "queue": sample_order,
             "sampleList": self.app.lims.sample_list_get(current_queue=queue),
             "queueStatus": self.queue_exec_state(),
+            "numSnapshots": HWR.beamline.collect.get_property(
+                "num_snapshots", self.app.DEFAULT_NUM_SNAPSHOTS
+            ),
         }
 
         res.update(settings)
         return res
 
-    def _handle_task_node(self, sample_node, node, include_lims_data=False):
+    def _handle_task_node(self, sample_node, node):
         parameters = {
             **node.task_data.collection_parameters.dict(),
             **node.task_data.user_collection_parameters.dict(),
@@ -337,7 +334,7 @@ class Queue(ComponentBase):
         parameters.pop("centred_position")
 
         queueID = node._node_id
-        enabled, state = self.get_node_state(queueID)
+        _, state = self.get_node_state(queueID)
 
         parameters["subdir"] = os.path.join(
             *parameters["path"].split(HWR.beamline.session.raw_data_folder_name)[1:]
@@ -397,7 +394,7 @@ class Queue(ComponentBase):
         parameters["shape"] = node.shape
 
         queueID = node._node_id
-        enabled, state = self.get_node_state(queueID)
+        _, state = self.get_node_state(queueID)
 
         raw_data = HWR.beamline.session.raw_data_folder_name
         ddir = parameters["directory"]
@@ -444,7 +441,7 @@ class Queue(ComponentBase):
 
     def _handle_wf(self, sample_node, node, include_lims_data):
         queueID = node._node_id
-        enabled, state = self.get_node_state(queueID)
+        _, state = self.get_node_state(queueID)
         parameters = node.parameters
         parameters.update(node.path_template.as_dict())
 
@@ -492,7 +489,7 @@ class Queue(ComponentBase):
 
     def _handle_xrf(self, sample_node, node):
         queueID = node._node_id
-        enabled, state = self.get_node_state(queueID)
+        _, state = self.get_node_state(queueID)
         parameters = {
             "countTime": node.count_time,
             "shape": node.shape,
@@ -513,7 +510,6 @@ class Queue(ComponentBase):
         parameters["fullPath"] = os.path.join(
             parameters["path"], parameters["fileName"]
         )
-        model, entry = self.get_entry(queueID)
 
         res = {
             "label": "XRF Scan",
@@ -531,7 +527,7 @@ class Queue(ComponentBase):
 
     def _handle_energy_scan(self, sample_node, node):
         queueID = node._node_id
-        enabled, state = self.get_node_state(queueID)
+        _, state = self.get_node_state(queueID)
         parameters = {
             "element": node.element_symbol,
             "edge": node.edge,
@@ -580,7 +576,7 @@ class Queue(ComponentBase):
         parameters.update(refp)
 
         queueID = node._node_id
-        enabled, state = self.get_node_state(queueID)
+        _, state = self.get_node_state(queueID)
 
         limsres = {}
         lims_id = self.app.NODE_ID_TO_LIMS_ID.get(node._node_id, "null")
@@ -613,13 +609,11 @@ class Queue(ComponentBase):
         return res
 
     def _handle_diffraction_plan(self, node, sample_node):
-        model, entry = self.get_entry(node._node_id)
+        model, _ = self.get_entry(node._node_id)
         originID = model.get_origin()
         tasks = []
 
-        if len(model.diffraction_plan) == 0:
-            return (-1, {})
-        else:
+        if len(model.diffraction_plan) > 0:
             collections = model.diffraction_plan[0]  # a list of lists
 
             for col in collections:
@@ -642,7 +636,7 @@ class Queue(ComponentBase):
             wedges.append(self._handle_dc(sample_node, child))
 
         queueID = node._node_id
-        enabled, state = self.get_node_state(queueID)
+        _, state = self.get_node_state(queueID)
 
         res = {
             "label": "Interleaved",
@@ -668,7 +662,7 @@ class Queue(ComponentBase):
 
         for child in node.get_children():
             for _c in child.get_children():
-                child_enabled, child_state = self.get_node_state(_c._node_id)
+                _, child_state = self.get_node_state(_c._node_id)
                 children_states.append(child_state)
 
         if RUNNING in children_states:
@@ -755,9 +749,7 @@ class Queue(ComponentBase):
             elif isinstance(node, qmo.TaskGroup) and node.interleave_num_images:
                 result.append(self._handle_interleaved(sample_node, node))
             elif isinstance(node, qmo.TaskNode) and node.task_data:
-                result.append(
-                    self._handle_task_node(sample_node, node, include_lims_data)
-                )
+                result.append(self._handle_task_node(sample_node, node))
             else:
                 result.extend(self.queue_to_dict_rec(node, include_lims_data))
 
@@ -813,10 +805,10 @@ class Queue(ComponentBase):
         for sid, tindex in item_pos_list:
             if tindex in ["undefined", None]:
                 node_id = current_queue[sid]["queueID"]
-                model, entry = self.get_entry(node_id)
+                _, entry = self.get_entry(node_id)
             else:
                 node_id = current_queue[sid]["tasks"][int(tindex)]["queueID"]
-                model, entry = self.get_entry(node_id)
+                _, entry = self.get_entry(node_id)
 
                 # Get the TaskGroup of the item, there is currently only one
                 # task per TaskGroup so we have to remove the entire TaskGroup
@@ -986,12 +978,11 @@ class Queue(ComponentBase):
 
         Each item (dictionary) describes either a sample or a task.
         """
-        children = []
-
         for item in item_list:
             item_t = item["type"]
-            # If the item a sample, then add it and its tasks. If its not, get the
-            # node id for the sample of the new task and append it to the sample
+            # If the item is a sample, then add it and its tasks.
+            # Otherwise, get the node id for the sample of the
+            # new task and append it to the sample.
             sample_id = str(item["sampleID"])
 
             if item_t == "Sample":
@@ -1006,7 +997,6 @@ class Queue(ComponentBase):
 
                 if tasks:
                     self._queue_add_item_rec(tasks, sample_node_id)
-                    children.extend(tasks)
 
             else:
                 if not sample_node_id:
@@ -1095,6 +1085,15 @@ class Queue(ComponentBase):
         params = task_data["parameters"]
         acq.acquisition_parameters.set_from_dict(params)
 
+        processing_params = model.processing_parameters
+        processing_params.space_group = params.get("space_group", "")
+        processing_params.cell_a = params.get("cellA", "")
+        processing_params.cell_alpha = params.get("cellAlpha", "")
+        processing_params.cell_b = params.get("cellB", "")
+        processing_params.cell_beta = params.get("cellBeta", "")
+        processing_params.cell_c = params.get("cellC", "")
+        processing_params.cell_gamma = params.get("cellGamma", "")
+
         ftype = HWR.beamline.detector.get_property("file_suffix")
         ftype = ftype if ftype else ".?"
 
@@ -1115,6 +1114,30 @@ class Queue(ComponentBase):
         else:
             acq.path_template.base_prefix = HWR.beamline.session.get_default_prefix(
                 sample_model
+            )
+
+        run_number_dir_parts = (
+            params.get("subdir", "").strip("/").split("/")[-1].split("_")
+        )
+
+        # When duplicating an item the "run number" directory of the original
+        # item is already part of the data subfolder, so we need to strip ita
+        # to avoid nesting.
+
+        # Sub directory is a run number directory if it starts
+        # with run folowed by a number and a tag spereated by a
+        # underscore (_) for instance, run_01_datacollection
+        # The run number directory is passed as the last folder of the
+        # data sub direecotry when and item is duplicated. We strip
+        # the run number folder in this case to remove duplication
+        if (
+            len(run_number_dir_parts) == 3
+            and run_number_dir_parts[0] == "run"
+            and run_number_dir_parts[1].isnumeric()
+            and run_number_dir_parts[2] == self.get_folder_tag(params)
+        ):
+            params["subdir"] = "/".join(
+                params.get("subdir", "").strip("/").split("/")[0:-1]
             )
 
         full_path, process_path = HWR.beamline.session.get_full_path(
@@ -1394,10 +1417,13 @@ class Queue(ComponentBase):
         model.element_symbol = params.get("element", "")
         model.edge = params.get("edge", "")
 
+        # MXCuBE Web specific shape attribute
+        model.shape = params["shape"]
+
         model.set_enabled(task_data["checked"])
         entry.set_enabled(task_data["checked"])
 
-    def _create_dc(self, task):
+    def _create_dc(self):
         """
         Creates a data collection model and its corresponding queue entry from
         a dict with collection parameters.
@@ -1409,6 +1435,10 @@ class Queue(ComponentBase):
         dc_model = qmo.DataCollection()
         dc_model.set_origin(ORIGIN_MX3)
         dc_model.center_before_collect = True
+        dc_model.take_snapshots = HWR.beamline.collect.get_property(
+            "num_snapshots", self.app.DEFAULT_NUM_SNAPSHOTS
+        )
+
         dc_entry = qe.DataCollectionQueueEntry(Mock(), dc_model)
 
         return dc_model, dc_entry
@@ -1438,14 +1468,16 @@ class Queue(ComponentBase):
 
         entry = entry_cls(Mock(), entry_cls.QMO(task_data=data))
         entry.set_enabled(True)
-        return entry.get_data_model(), entry
 
-    def _create_wf(self, task):
+        model = entry.get_data_model()
+        model.set_origin(ORIGIN_MX3)
+
+        return model, entry
+
+    def _create_wf(self):
         """
-        Creates a workflow model and its corresponding queue entry from
-        a dict with collection parameters.
+        Creates a workflow model.
 
-        :param dict task: Collection parameters
         :returns: The tuple (model, entry)
         :rtype: Tuple
         """
@@ -1455,12 +1487,10 @@ class Queue(ComponentBase):
 
         return dc_model, dc_entry
 
-    def _create_gphl_wf(self, task):
+    def _create_gphl_wf(self):
         """
-        Creates a gphl workflow model and its corresponding queue entry from
-        a dict with collection parameters.
+        Creates a gphl workflow model.
 
-        :param dict task: Collection parameters
         :returns: The tuple (model, entry)
         :rtype: Tuple
         """
@@ -1474,10 +1504,9 @@ class Queue(ComponentBase):
 
         return dc_model, dc_entry
 
-    def _create_xrf(self, task):
+    def _create_xrf(self):
         """
-        Creates a XRFSpectrum model and its corresponding queue entry from
-        a dict with collection parameters.
+        Creates a XRFSpectrum model.
 
         :param dict task: Collection parameters
         :returns: The tuple (model, entry)
@@ -1489,7 +1518,7 @@ class Queue(ComponentBase):
 
         return xrf_model, xrf_entry
 
-    def _create_energy_scan(self, task, sample_model):
+    def _create_energy_scan(self, sample_model):
         """
         Creates a energy scan model and its corresponding queue entry from
         a dict with collection parameters.
@@ -1517,7 +1546,7 @@ class Queue(ComponentBase):
         sample_model, sample_entry = self.get_entry(node_id)
         params = task["parameters"]
 
-        refdc_model, refdc_entry = self._create_dc(task)
+        refdc_model, _ = self._create_dc()
         refdc_model.acquisitions[0].path_template.reference_image_prefix = "ref"
         refdc_model.set_name("refdc")
         char_params = qmo.CharacterisationParameters().set_from_dict(params)
@@ -1564,7 +1593,7 @@ class Queue(ComponentBase):
         :rtype: int
         """
         sample_model, sample_entry = self.get_entry(node_id)
-        dc_model, dc_entry = self._create_dc(task)
+        dc_model, dc_entry = self._create_dc()
         self.set_dc_params(dc_model, dc_entry, task, sample_model)
 
         group_model = qmo.TaskGroup()
@@ -1593,6 +1622,15 @@ class Queue(ComponentBase):
 
         acq = model.acquisitions[0]
         params = task["parameters"]
+
+        processing_params = model.processing_parameters
+        processing_params.space_group = params.get("space_group", "")
+        processing_params.cell_a = params.get("cellA", "")
+        processing_params.cell_alpha = params.get("cellAlpha", "")
+        processing_params.cell_b = params.get("cellB", "")
+        processing_params.cell_beta = params.get("cellBeta", "")
+        processing_params.cell_c = params.get("cellC", "")
+        processing_params.cell_gamma = params.get("cellGamma", "")
 
         ftype = HWR.beamline.detector.get_property("file_suffix")
         ftype = ftype if ftype else ".?"
@@ -1651,7 +1689,7 @@ class Queue(ComponentBase):
         parent_model, parent_entry = self.get_entry(node_id)
         sample_model = parent_model.get_sample_node()
         if task["parameters"]["wfpath"] == "Gphl":
-            wf_model, dc_entry = self._create_gphl_wf(task)
+            wf_model, dc_entry = self._create_gphl_wf()
             self.set_gphl_wf_params(
                 wf_model,
                 dc_entry,
@@ -1659,7 +1697,7 @@ class Queue(ComponentBase):
                 parent_model.get_sample_node(),
             )
         else:
-            wf_model, dc_entry = self._create_wf(task)
+            wf_model, dc_entry = self._create_wf()
 
         group_model = qmo.TaskGroup()
         group_model.set_origin(ORIGIN_MX3)
@@ -1703,7 +1741,7 @@ class Queue(ComponentBase):
 
         for wedge in task["parameters"]["wedges"]:
             wc = wc + 1
-            dc_model, dc_entry = self._create_dc(wedge)
+            dc_model, dc_entry = self._create_dc()
             self.set_dc_params(dc_model, dc_entry, wedge, sample_model)
 
             # Add wedge prefix to path
@@ -1728,7 +1766,7 @@ class Queue(ComponentBase):
         :rtype: int
         """
         sample_model, sample_entry = self.get_entry(node_id)
-        xrf_model, xrf_entry = self._create_xrf(task)
+        xrf_model, xrf_entry = self._create_xrf()
         self.set_xrf_params(xrf_model, xrf_entry, task, sample_model)
 
         group_model = qmo.TaskGroup()
@@ -1755,7 +1793,7 @@ class Queue(ComponentBase):
         :rtype: int
         """
         sample_model, sample_entry = self.get_entry(node_id)
-        escan_model, escan_entry = self._create_energy_scan(task, sample_model)
+        escan_model, escan_entry = self._create_energy_scan(sample_model)
         self.set_energy_scan_params(escan_model, escan_entry, task, sample_model)
 
         group_model = qmo.TaskGroup()
@@ -1786,46 +1824,15 @@ class Queue(ComponentBase):
         HWR.beamline.queue_model.clear_model("plate")
         HWR.beamline.queue_model.select_model("ispyb")
 
-    def save_queue(self, session, redis=redis.Redis()):
-        """
-        Saves the current HWR.beamline.queue_model (HWR.beamline.queue_model) into a redis database.
-        The queue that is saved is the pickled result returned by queue_to_dict
-
-        :param session: Session to save queue for
-        :param redis: Redis database
-
-        """
-        proposal_id = getattr(current_user, "proposal", None)
-
-        if proposal_id is not None:
-            # List of samples dicts (containing tasks) sample and tasks have same
-            # order as the in queue HO
-            queue = self.queue_to_dict(HWR.beamline.queue_model.get_model_root())
-            redis.set("self.app.queue:%d" % proposal_id, pickle.dumps(queue))
-
-    def load_queue(self, session, redis=redis.Redis()):
-        """
-        Loads the queue belonging to session <session> into redis db <redis>
-
-        :param session: Session for queue to load
-        :param redis: Redis database
-        """
-        proposal_id = getattr(current_user, "proposal", None)
-
-        if proposal_id is not None:
-            serialized_queue = redis.get("self.app.queue:%d" % proposal_id)
-            queue = pickle.loads(serialized_queue)
-            self.load_queue_from_dict(queue)
-
     def queue_model_child_added(self, parent, child):
         """
         Listen to the addition of elements to the queue model ('child_added').
         Add the corresponding entries to the queue if they are not already
-        added. Handels for instance the addition of reference collections for
+        added. Handles for instance the addition of reference collections for
         characterisations and workflows.
         """
-        parent_model, parent_entry = self.get_entry(parent._node_id)
-        child_model, child_entry = self.get_entry(child._node_id)
+        _, parent_entry = self.get_entry(parent._node_id)
+        child_model, _ = self.get_entry(child._node_id)
 
         # Origin is ORIGIN_MX3 if task comes from MXCuBE-3
         if child_model.get_origin() != ORIGIN_MX3:
@@ -1875,9 +1882,9 @@ class Queue(ComponentBase):
         for collection in collection_list:
             if isinstance(collection, qmo.DataCollection):
                 if collection.get_origin():
-                    origin_model, origin_entry = self.get_entry(collection.get_origin())
+                    origin_model, _ = self.get_entry(collection.get_origin())
                 else:
-                    origin_model, origin_entry = self.get_entry(char._node_id)
+                    origin_model, _ = self.get_entry(char._node_id)
 
                 collection.set_enabled(False)
 
@@ -1897,7 +1904,7 @@ class Queue(ComponentBase):
 
         self.app.server.emit("add_diff_plan", {"tasks": cols}, namespace="/hwr")
 
-    def set_auto_add_diffplan(self, autoadd, current_sample=None):
+    def set_auto_add_diffplan(self, autoadd):
         """
         Sets auto add diffraction plan flag, automatically add to the queue
         (True) or wait for user (False)
@@ -1916,7 +1923,7 @@ class Queue(ComponentBase):
             tasks = current_queue[sample]["tasks"]
             for t in tasks:
                 if t["type"] == "Characterisation":
-                    model, entry = self.get_entry(t["queueID"])
+                    _, entry = self.get_entry(t["queueID"])
                     entry.auto_add_diff_plan = autoadd
 
     def execute_entry_with_id(self, sid, tindex=None):
@@ -2067,7 +2074,7 @@ class Queue(ComponentBase):
             sample_data = current_queue[sample_id]
             self.enable_entry(sample_data["queueID"], flag)
 
-    def set_auto_mount_sample(self, automount, current_sample=None):
+    def set_auto_mount_sample(self, automount):
         """
         Sets auto mount next flag, automatically mount next sample in queue
         (True) or wait for user (False)
@@ -2112,7 +2119,6 @@ class Queue(ComponentBase):
         )
 
     def init_queue_settings(self):
-        self.app.NUM_SNAPSHOTS = HWR.beamline.collect.get_property("num_snapshots", 4)
         self.app.AUTO_MOUNT_SAMPLE = HWR.beamline.collect.get_property(
             "auto_mount_sample", False
         )
@@ -2150,29 +2156,7 @@ class Queue(ComponentBase):
             logging.getLogger("MX3.HWR").info("[QUEUE] Queue started")
 
     def queue_stop(self):
-        from mxcubeweb.routes import signals
-
-        if HWR.beamline.queue_manager._root_task is not None:
-            HWR.beamline.queue_manager.stop()
-        else:
-            qe = HWR.beamline.queue_manager.get_current_entry()
-            # check if a node/task is executing and stop that one
-            if qe:
-                try:
-                    qe.stop()
-                except Exception:
-                    logging.getLogger("MX3.HWR").exception(
-                        "[QUEUE] Could not stop queue"
-                    )
-                HWR.beamline.queue_manager.set_pause(False)
-                # the next two is to avoid repeating the task
-                # TODO: if you now run the queue it will be enabled and run
-                qe.get_data_model().set_executed(True)
-                qe.get_data_model().set_enabled(False)
-                qe._execution_failed = True
-
-                HWR.beamline.queue_manager._is_stopped = True
-                signals.queue_execution_stopped()
+        HWR.beamline.queue_manager.stop()
 
     def queue_pause(self):
         """
@@ -2218,17 +2202,12 @@ class Queue(ComponentBase):
         msg = "[QUEUE] Cleared  " + str(HWR.beamline.queue_model.get_model_root()._name)
         logging.getLogger("MX3.HWR").info(msg)
 
-    def set_queue(self, json_queue, session):
-        # Clear queue
-        # HWR.beamline.queue_model = clear_queue()
-
-        # Set new queue
+    def set_queue(self, json_queue):
         self.queue_add_item(json_queue)
-        self.save_queue(session)
 
     def queue_update_item(self, sqid, tqid, data):
         model, entry = self.get_entry(tqid)
-        sample_model, sample_entry = self.get_entry(sqid)
+        sample_model, _ = self.get_entry(sqid)
 
         if data["type"] == "DataCollection":
             self.set_dc_params(model, entry, data, sample_model)
@@ -2400,7 +2379,9 @@ class Queue(ComponentBase):
                 "inverse_beam": False,
                 "take_dark_current": True,
                 "skip_existing_images": False,
-                "take_snapshots": True,
+                "take_snapshots": HWR.beamline.collect.get_property(
+                    "num_snapshots", self.app.DEFAULT_NUM_SNAPSHOTS
+                ),
                 "helical": False,
                 "mesh": False,
                 "prefixTemplate": "{PREFIX}_{POSITION}",
@@ -2506,3 +2487,10 @@ class Queue(ComponentBase):
             result = ()
 
         return result
+
+    def set_num_snapshots(self, num_snapshots: int):
+        """Sets the number of snapshots to take during data collection
+        Args:
+            num_snapshots (int): number of snapshots to be taken
+        """
+        HWR.beamline.collect.number_of_snapshots = num_snapshots

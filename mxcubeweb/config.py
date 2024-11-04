@@ -1,23 +1,26 @@
+import logging
 import os
 import sys
-import logging
-import ruamel.yaml
 
-from pydantic import BaseModel, ValidationError
+import ruamel.yaml
+from pydantic.v1 import (
+    BaseModel,
+    ValidationError,
+)
 
 from mxcubeweb.core.models.configmodels import (
-    UIPropertiesListModel,
     AppConfigModel,
     FlaskConfigModel,
     MXCUBEAppConfigModel,
+    UIPropertiesListModel,
 )
 
 
 class ConfigLoader:
     @staticmethod
-    def load(path: str, schema: BaseModel, filetype="yaml"):
-        with open(os.path.join(path)) as f:
-            config = ruamel.yaml.load(f.read(), ruamel.yaml.RoundTripLoader)
+    def load(path: str, schema: BaseModel):
+        with open(os.path.join(path), encoding="utf-8") as f:
+            config = ruamel.yaml.YAML().load(f.read())
             try:
                 model = schema.parse_obj(config)
             except ValidationError:

@@ -1,21 +1,19 @@
 # -*- coding: utf-8 -*-
-import sys
-import logging
 import copy
 import io
+import json
+import logging
 import math
 import re
-import json
+import sys
 
+from flask import session
+from flask_login import current_user
 from mxcubecore import HardwareRepository as HWR
 from mxcubecore.model import queue_model_objects as qmo
 
 from mxcubeweb.core.components.component_base import ComponentBase
 from mxcubeweb.core.util import fsutils
-
-from flask import session
-from flask_login import current_user
-
 
 VALID_SAMPLE_NAME_REGEXP = re.compile("^[a-zA-Z0-9:+_-]+$")
 
@@ -230,12 +228,6 @@ class Lims(ComponentBase):
                 todays_session = HWR.beamline.lims.get_todays_session(prop)
                 prop["Session"] = [todays_session["session"]]
 
-            if hasattr(
-                HWR.beamline.session, "commissioning_fake_proposal"
-            ) and HWR.beamline.session.is_inhouse(loginID, None):
-                dummy = HWR.beamline.session.commissioning_fake_proposal
-                session["proposal_list"].append(dummy)
-
             login_res["proposalList"] = session["proposal_list"]
             login_res["status"] = {
                 "code": "ok",
@@ -258,9 +250,13 @@ class Lims(ComponentBase):
             session["proposal_list"] = [proposal]
             login_res["proposalList"] = [proposal]
 
-        logging.getLogger("MX3.HWR").info(
-            "[LIMS] Logged in, proposal data: %s" % login_res
-        )
+            logging.getLogger("MX3.HWR").info(
+                "[LIMS] Logged in, valid proposal: %s%s"
+                % (
+                    login_res["Proposal"]["code"],
+                    login_res["Proposal"]["number"],
+                )
+            )
 
         return login_res
 
@@ -328,8 +324,12 @@ class Lims(ComponentBase):
                 "sessionId"
             )
 
-            HWR.beamline.session.proposal_id = proposal_info.get("Session")[0].get(
+            HWR.beamline.session.proposal_id = todays_session.get("session").get(
                 "proposalId"
+            )
+
+            HWR.beamline.session.set_session_start_date(
+                todays_session.get("session").get("startDate")
             )
 
             session["proposal"] = proposal_info
@@ -409,7 +409,10 @@ class Lims(ComponentBase):
             sample_info["defaultSubDir"] = self.get_default_subdir(sample_info)
 
             if not VALID_SAMPLE_NAME_REGEXP.match(sample_info["sampleName"]):
-                raise AttributeError("sample name contains an incorrect character")
+                raise AttributeError(
+                    "sample name for sample %s contains an incorrect character"
+                    % sample_info
+                )
 
             try:
                 basket = int(sample_info["containerSampleChangerLocation"])

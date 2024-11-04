@@ -1,10 +1,13 @@
 import datetime
 import typing
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
-from sqlalchemy.ext.declarative import declarative_base
 from flask_security import SQLAlchemySessionUserDatastore
+from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import (
+    scoped_session,
+    sessionmaker,
+)
 
 Base = declarative_base()
 
@@ -42,9 +45,15 @@ class UserDatastore(SQLAlchemySessionUserDatastore):
         self._message_model = message_model
         self._messages_users_model = typing.Type["MessagesUsers"]  # noqa: F821
 
-    def create_message(self, message):
+    def create_message(self, message, from_username, from_nickname, from_host):
         return self.put(
-            self._message_model(message=message, at=datetime.datetime.now())
+            self._message_model(
+                message=message,
+                at=datetime.datetime.now(),
+                from_username=from_username,
+                from_nickname=from_nickname,
+                from_host=from_host,
+            )
         )
 
     def add_message_to_user(self, user, message):

@@ -3,38 +3,36 @@ Module that contains application wide settings and state as well as functions
 for accessing and manipulating those.
 """
 
+import logging
 import os
 import sys
-import logging
-import traceback
-import atexit
-import json
 import time
-
-from pathlib import Path
+import traceback
 from logging import StreamHandler
 from logging.handlers import TimedRotatingFileHandler
+from pathlib import Path
 
+from mxcubecore import ColorFormatter
 from mxcubecore import HardwareRepository as HWR
-from mxcubecore import removeLoggingHandlers, ColorFormatter
-from mxcubecore import queue_entry
+from mxcubecore import (
+    queue_entry,
+    removeLoggingHandlers,
+)
 from mxcubecore.utils.conversion import make_table
 
-from mxcubeweb.logging_handler import MX3LoggingHandler
-from mxcubeweb.core.util.adapterutils import (
-    get_adapter_cls_from_hardware_object,
-)
 from mxcubeweb.core.adapter.adapter_base import AdapterBase
-from mxcubeweb.core.components.component_base import import_component
-from mxcubeweb.core.components.lims import Lims
-from mxcubeweb.core.components.chat import Chat
-from mxcubeweb.core.components.samplechanger import SampleChanger
 from mxcubeweb.core.components.beamline import Beamline
-from mxcubeweb.core.components.sampleview import SampleView
+from mxcubeweb.core.components.chat import Chat
+from mxcubeweb.core.components.component_base import import_component
+from mxcubeweb.core.components.harvester import Harvester
+from mxcubeweb.core.components.lims import Lims
 from mxcubeweb.core.components.queue import Queue
+from mxcubeweb.core.components.samplechanger import SampleChanger
+from mxcubeweb.core.components.sampleview import SampleView
 from mxcubeweb.core.components.workflow import Workflow
 from mxcubeweb.core.models.configmodels import UIComponentModel
-
+from mxcubeweb.core.util.adapterutils import get_adapter_cls_from_hardware_object
+from mxcubeweb.logging_handler import MX3LoggingHandler
 
 removeLoggingHandlers()
 
@@ -88,9 +86,7 @@ class MXCUBECore:
 
         :return: None
         """
-        from mxcubeweb.core.adapter.beamline_adapter import (
-            BeamlineAdapter,
-        )
+        from mxcubeweb.core.adapter.beamline_adapter import BeamlineAdapter
 
         fname = os.path.dirname(__file__)
         HWR.add_hardware_objects_dirs([os.path.join(fname, "HardwareObjects")])
@@ -142,12 +138,11 @@ class MXCUBECore:
 
     @staticmethod
     def adapt_hardware_objects(app):
-        adapter_config = app.CONFIG.app.adapter_properties
         hwobject_list = [item for item in MXCUBECore.hwr.hardware_objects]
 
         for ho_name in hwobject_list:
             # Go through all hardware objects exposed by mxcubecore
-            # hardware repository set id to username if its deinfed
+            # hardware repository set id to username if its defined
             # use the name otherwise (file name without extension)
             ho = MXCUBECore.hwr.get_hardware_object(ho_name)
 
@@ -162,7 +157,7 @@ class MXCUBECore:
 
             if adapter_cls:
                 try:
-                    adapter_instance = adapter_cls(ho, _id, app, **dict(adapter_config))
+                    adapter_instance = adapter_cls(ho, _id, app)
                     logging.getLogger("MX3.HWR").info("Added adapter for %s" % _id)
                 except Exception:
                     logging.getLogger("MX3.HWR").exception(
@@ -242,7 +237,7 @@ class MXCUBEApplication:
     AUTO_ADD_DIFFPLAN = False
 
     # Number of sample snapshots taken before collect
-    NUM_SNAPSHOTS = 4
+    DEFAULT_NUM_SNAPSHOTS = 4
 
     # Remember collection paramters between samples
     # or reset (defualt) between samples.
@@ -308,14 +303,12 @@ class MXCUBEApplication:
         MXCUBEApplication.beamline = Beamline(MXCUBEApplication, {})
         MXCUBEApplication.sample_view = SampleView(MXCUBEApplication, {})
         MXCUBEApplication.workflow = Workflow(MXCUBEApplication, {})
+        MXCUBEApplication.harvester = Harvester(MXCUBEApplication, {})
 
         MXCUBEApplication.init_signal_handlers()
-        atexit.register(MXCUBEApplication.app_atexit)
-
         # Install server-side UI state storage
         MXCUBEApplication.init_state_storage()
 
-        # MXCUBEApplication.load_settings()
         msg = "MXCuBE 3 initialized, it took %.1f seconds" % (
             time.time() - MXCUBEApplication.t0
         )
@@ -358,6 +351,11 @@ class MXCUBEApplication:
         try:
             MXCUBEApplication.beamline.init_signals()
             MXCUBEApplication.beamline.diffractometer_init_signals()
+        except Exception:
+            sys.excepthook(*sys.exc_info())
+
+        try:
+            MXCUBEApplication.harvester.init_signals()
         except Exception:
             sys.excepthook(*sys.exc_info())
 
@@ -451,39 +449,40 @@ class MXCUBEApplication:
         # (either via config or via mxcubecore.beamline)
 
         for _id, section in MXCUBEApplication.CONFIG.app.ui_properties:
-            for component in section.components:
-                # Check that the component, if it's a UIComponentModel, corresponds
-                # to a HardwareObjecs that is available and that it can be
-                # adapted.
-                if isinstance(component, UIComponentModel):
-                    try:
-                        mxcore = MXCUBEApplication.mxcubecore
-                        adapter = mxcore.get_adapter(component.attribute)
-                        adapter_cls_name = type(adapter).__name__
-                        value_type = adapter.adapter_type
-                    except AttributeError:
-                        msg = (
-                            f"{component.attribute} not accessible via Beamline"
-                            " object. "
-                        )
-                        msg += (
-                            f"Verify that beamline.{component.attribute} is valid"
-                            " and/or "
-                        )
-                        msg += f"{component.attribute} accessible via get_role "
-                        msg += "check ui.yaml configuration file. "
-                        msg += "(attribute will NOT be avilable in UI)"
-                        logging.getLogger("HWR").warning(msg)
-                        adapter_cls_name = ""
-                        value_type = ""
-                    else:
-                        adapter_cls_name = adapter_cls_name.replace("Adapter", "")
+            if section:
+                for component in section.components:
+                    # Check that the component, if it's a UIComponentModel, corresponds
+                    # to a HardwareObjects that is available and that it can be
+                    # adapted.
+                    if isinstance(component, UIComponentModel):
+                        try:
+                            mxcore = MXCUBEApplication.mxcubecore
+                            adapter = mxcore.get_adapter(component.attribute)
+                            adapter_cls_name = type(adapter).__name__
+                            value_type = adapter.adapter_type
+                        except AttributeError:
+                            msg = (
+                                f"{component.attribute} not accessible via Beamline"
+                                " object. "
+                            )
+                            msg += (
+                                f"Verify that beamline.{component.attribute} is valid"
+                                " and/or "
+                            )
+                            msg += f"{component.attribute} accessible via get_role "
+                            msg += "check ui.yaml configuration file. "
+                            msg += "(attribute will NOT be available in UI)"
+                            logging.getLogger("HWR").warning(msg)
+                            adapter_cls_name = ""
+                            value_type = ""
+                        else:
+                            adapter_cls_name = adapter_cls_name.replace("Adapter", "")
 
-                    if not component.object_type:
-                        component.object_type = adapter_cls_name
+                        if not component.object_type:
+                            component.object_type = adapter_cls_name
 
-                    if not component.value_type:
-                        component.value_type = value_type
+                        if not component.value_type:
+                            component.value_type = value_type
 
         return {
             key: value.dict()
@@ -491,73 +490,5 @@ class MXCUBEApplication:
                 key,
                 value,
             ) in MXCUBEApplication.CONFIG.app.ui_properties
+            if value
         }
-
-    @staticmethod
-    def save_settings():
-        """
-        Saves all application wide variables to disk, stored-mxcube-session.json
-        """
-        queue = MXCUBEApplication.queue.queue_to_dict(
-            HWR.beamline.queue_model.get_model_root()
-        )
-
-        # For the moment not storing USERS
-
-        data = {
-            "QUEUE": queue,
-            "CURRENTLY_MOUNTED_SAMPLE": MXCUBEApplication.CURRENTLY_MOUNTED_SAMPLE,
-            "SAMPLE_TO_BE_MOUNTED": MXCUBEApplication.SAMPLE_TO_BE_MOUNTED,
-            "CENTRING_METHOD": MXCUBEApplication.CENTRING_METHOD,
-            "NODE_ID_TO_LIMS_ID": MXCUBEApplication.NODE_ID_TO_LIMS_ID,
-            "INITIAL_FILE_LIST": MXCUBEApplication.INITIAL_FILE_LIST,
-            "SC_CONTENTS": MXCUBEApplication.SC_CONTENTS,
-            "SAMPLE_LIST": MXCUBEApplication.SAMPLE_LIST,
-            "TEMP_DISABLED": MXCUBEApplication.TEMP_DISABLED,
-            "ALLOW_REMOTE": MXCUBEApplication.ALLOW_REMOTE,
-            "TIMEOUT_GIVES_CONTROL": MXCUBEApplication.TIMEOUT_GIVES_CONTROL,
-            "VIDEO_FORMAT": MXCUBEApplication.VIDEO_FORMAT,
-            "AUTO_MOUNT_SAMPLE": MXCUBEApplication.AUTO_MOUNT_SAMPLE,
-            "AUTO_ADD_DIFFPLAN": MXCUBEApplication.AUTO_ADD_DIFFPLAN,
-            "NUM_SNAPSHOTS": MXCUBEApplication.NUM_SNAPSHOTS,
-            "UI_STATE": MXCUBEApplication.UI_STATE,
-        }
-
-        fname = Path("/tmp/stored-mxcube-session.json")
-        fname.touch(exist_ok=True)
-
-        with open(fname, "w+") as fp:
-            json.dump(data, fp)
-
-    @staticmethod
-    def load_settings():
-        """
-        Loads application wide variables from "stored-mxcube-session.json"
-        """
-        with open("/tmp/stored-mxcube-session.json", "r") as f:
-            data = json.load(f)
-
-        MXCUBEApplication.queue.load_queue_from_dict(data.get("QUEUE", {}))
-
-        MXCUBEApplication.CENTRING_METHOD = data.get(
-            "CENTRING_METHOD", queue_entry.CENTRING_METHOD.LOOP
-        )
-        MXCUBEApplication.NODE_ID_TO_LIMS_ID = data.get("NODE_ID_TO_LIMS_ID", {})
-        MXCUBEApplication.SC_CONTENTS = data.get(
-            "SC_CONTENTS", {"FROM_CODE": {}, "FROM_LOCATION": {}}
-        )
-        MXCUBEApplication.SAMPLE_LIST = data.get(
-            "SAMPLE_LIST", {"sampleList": {}, "sampleOrder": []}
-        )
-        MXCUBEApplication.ALLOW_REMOTE = data.get("ALLOW_REMOTE", False)
-        MXCUBEApplication.TIMEOUT_GIVES_CONTROL = data.get(
-            "TIMEOUT_GIVES_CONTROL", False
-        )
-        MXCUBEApplication.AUTO_MOUNT_SAMPLE = data.get("AUTO_MOUNT_SAMPLE", False)
-        MXCUBEApplication.AUTO_ADD_DIFFPLAN = data.get("AUTO_ADD_DIFFPLAN", False)
-        MXCUBEApplication.NUM_SNAPSHOTS = data.get("NUM_SNAPSHOTS", False)
-        MXCUBEApplication.UI_STATE = data.get("UI_STATE", {})
-
-    @staticmethod
-    def app_atexit():
-        MXCUBEApplication.save_settings()

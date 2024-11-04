@@ -1,6 +1,15 @@
+---
+# yamllint disable rule:line-length
+
+
+# Pin micromamba version to `1.5.10-0` because of following issue:
+# https://github.com/mamba-org/setup-micromamba/issues/225
+
 name: UI
 
-on: [push, pull_request]
+"on":
+  pull_request: null
+  push: null
 
 jobs:
   format:
@@ -17,7 +26,7 @@ jobs:
       - name: Set up Conda environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: "latest"
+          micromamba-version: 1.5.10-0
           environment-file: conda-environment.yml
           cache-environment: true
           post-cleanup: "all"
@@ -51,7 +60,7 @@ jobs:
       - name: Set up Conda environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: "latest"
+          micromamba-version: 1.5.10-0
           environment-file: conda-environment.yml
           cache-environment: true
           post-cleanup: "all"
@@ -102,7 +111,7 @@ jobs:
       - name: Set up Conda environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: "latest"
+          micromamba-version: 1.5.10-0
           environment-file: conda-environment.yml
           cache-environment: true
           post-cleanup: "all"
@@ -124,16 +133,16 @@ jobs:
 
       - name: Build UI
         run: "${MAMBA_EXE} run --name mxcubeweb pnpm --prefix ui build"
-        env:
-          DISABLE_ESLINT_PLUGIN: true
 
       - name: Start MXCuBE-Web server
         run: |
-          ${MAMBA_EXE} run --name mxcubeweb mxcubeweb-server -r ./test/HardwareObjectsMockup.xml/ --static-folder $(pwd)/ui/build/ -L debug &
+          ${MAMBA_EXE} run --name mxcubeweb mxcubeweb-server -r ./demo/ --static-folder $(pwd)/ui/build/ -L debug &
           ${MAMBA_EXE} run --name mxcubeweb pnpm --prefix ui exec wait-on http://127.0.0.1:8081
 
       - name: Run Cypress
         run: "${MAMBA_EXE} run --name mxcubeweb pnpm --prefix ui e2e"
+        env:
+          CYPRESS_BASE_URL: http://127.0.0.1:8081
 
       - uses: actions/upload-artifact@v3
         if: failure()

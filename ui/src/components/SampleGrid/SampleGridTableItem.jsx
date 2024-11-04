@@ -3,12 +3,11 @@ import React from 'react';
 import {
   ListGroup,
   OverlayTrigger,
-  Tooltip,
   Popover,
   Badge,
   Button,
 } from 'react-bootstrap';
-import classNames from 'classnames';
+import cx from 'classnames';
 
 import { CopyToClipboard } from 'react-copy-to-clipboard';
 
@@ -17,6 +16,7 @@ import { isCollected } from '../../constants';
 import { BsSquare, BsCheck2Square } from 'react-icons/bs';
 import { MdContentCopy } from 'react-icons/md';
 import './SampleGridTable.css';
+import TooltipTrigger from '../TooltipTrigger';
 
 export class SampleGridTableItem extends React.Component {
   constructor(props) {
@@ -38,33 +38,32 @@ export class SampleGridTableItem extends React.Component {
   }
 
   itemControls() {
-    let icon = <BsSquare size="0.9em" />;
-
-    if (this.props.picked) {
-      icon = <BsCheck2Square size="1em" />;
-    }
-
-    const pickButton = (
-      <OverlayTrigger
-        placement="auto"
-        overlay={
-          <Tooltip id="pick-sample">Pick/Unpick sample for collect</Tooltip>
-        }
-      >
-        <Button
-          variant="link"
-          disabled={this.props.current && this.props.picked}
-          className="samples-grid-table-item-button"
-          onClick={(e) => {
-            this.pickButtonOnClick(e);
-          }}
+    return (
+      <div className="samples-item-controls-container">
+        <TooltipTrigger
+          id="pick-sample"
+          placement="auto"
+          tooltipContent="Pick/Unpick sample for collect"
         >
-          <i>{icon}</i>
-        </Button>
-      </OverlayTrigger>
+          <Button
+            variant="link"
+            disabled={this.props.current && this.props.picked}
+            className="samples-grid-table-item-button"
+            onClick={(e) => {
+              this.pickButtonOnClick(e);
+            }}
+          >
+            <i>
+              {this.props.picked ? (
+                <BsCheck2Square size="1em" />
+              ) : (
+                <BsSquare size="0.9em" />
+              )}
+            </i>
+          </Button>
+        </TooltipTrigger>
+      </div>
     );
-
-    return <div className="samples-item-controls-container">{pickButton}</div>;
   }
 
   seqId() {
@@ -149,17 +148,14 @@ export class SampleGridTableItem extends React.Component {
   }
 
   render() {
-    const classes = classNames('samples-grid-table-item', {
+    const classes = cx('samples-grid-table-item', {
       'samples-grid-table-item-to-be-collected': this.props.picked,
       'samples-grid-table-item-collected': isCollected(this.props.sampleData),
     });
 
-    const scLocationClasses = classNames(
-      'sc_location',
-      'label',
-      'label-default',
-      { 'label-custom-success': this.props.sampleData.loadable === true },
-    );
+    const scLocationClasses = cx('sc_location', 'label', 'label-default', {
+      'label-custom-success': this.props.sampleData.loadable === true,
+    });
 
     const limsLink = this.props.sampleData.limsLink || '#';
     return (

@@ -1,20 +1,18 @@
-import time
-import json
 import copy
+import json
+import time
 
+from fixture import client
 from input_parameters import (
+    default_char_acq_params,
+    default_dc_params,
+    default_mesh_params,
+    default_xrf_parameters,
+    test_edit_task,
     test_sample_5,
     test_sample_6,
     test_task,
-    test_edit_task,
-    default_dc_params,
-    default_char_acq_params,
-    default_mesh_params,
-    default_xrf_parameters,
 )
-
-
-from fixture import client
 
 
 def test_queue_get(client):
@@ -454,7 +452,7 @@ def test_set_automount(client):
 
     resp = client.post(
         "/mxcube/api/v0.1/queue/automount",
-        data=json.dumps(True),
+        data=json.dumps({"automount": True}),
         content_type="application/json",
     )
     assert resp.status_code == 200 and json.loads(resp.data).get("automount") == True
@@ -484,10 +482,9 @@ def test_set_group_folder(client):
 def test_set_autoadd(client):
     resp = client.post(
         "/mxcube/api/v0.1/queue/auto_add_diffplan",
-        data=json.dumps(True),
+        data=json.dumps({"autoadddiffplan": True}),
         content_type="application/json",
     )
     assert (
-        resp.status_code == 200
-        and json.loads(resp.data).get("auto_add_diffplan") == True
+        resp.status_code == 200 and json.loads(resp.data).get("autoadddiffplan") == True
     )

@@ -1,8 +1,4 @@
-/* eslint-disable promise/catch-or-return */
 /* eslint-disable promise/prefer-await-to-then */
-/* eslint-disable sonarjs/no-duplicate-string */
-
-import fetch from 'isomorphic-fetch';
 import { fetchBeamInfo, fetchBeamlineSetup } from '../api/beamline';
 import { fetchDiffractometerInfo } from '../api/diffractometer';
 import { fetchLogMessages } from '../api/log';
@@ -10,8 +6,14 @@ import { fetchApplicationSettings, fetchUIProperties } from '../api/main';
 import { fetchAvailableWorkflows } from '../api/workflow';
 import { fetchAvailableTasks, fetchQueueState } from '../api/queue';
 
-import { showErrorPanel, setLoading, applicationFetched } from './general';
+import { showErrorPanel, applicationFetched } from './general';
 import { fetchLoginInfo, sendLogIn, sendSignOut } from '../api/login';
+import { fetchDetectorInfo } from '../api/detector';
+import { fetchSampleChangerInitialState } from '../api/sampleChanger';
+import { fetchHarvesterInitialState } from '../api/harvester';
+import { fetchImageData, fetchShapes } from '../api/sampleview';
+import { fetchRemoteAccessState } from '../api/remoteAccess';
+import { sendSelectProposal } from '../api/lims';
 
 export function setLoginInfo(loginInfo) {
   return {
@@ -46,7 +48,7 @@ export function hideProposalsForm() {
   };
 }
 
-export function selectProposal(prop) {
+export function selectProposalAction(prop) {
   return {
     type: 'SELECT_PROPOSAL',
     proposal: prop,
@@ -57,29 +59,16 @@ export function setInitialState(data) {
   return { type: 'SET_INITIAL_STATE', data };
 }
 
-export function postProposal(number) {
-  return fetch('mxcube/api/v0.1/lims/proposal', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-      'Content-type': 'application/json',
-    },
-    body: JSON.stringify({ proposal_number: number }),
-  });
-}
-
-export function sendSelectProposal(number, navigate) {
-  return (dispatch) => {
-    postProposal(number).then((response) => {
-      if (response.status >= 400) {
-        dispatch(showErrorPanel(true, 'Server refused to select proposal'));
-        navigate('/login');
-      } else {
-        navigate('/');
-        dispatch(selectProposal(number));
-      }
-    });
+export function selectProposal(number, navigate) {
+  return async (dispatch) => {
+    try {
+      await sendSelectProposal(number);
+      navigate('/');
+      dispatch(selectProposalAction(number));
+    } catch {
+      dispatch(showErrorPanel(true, 'Server refused to select proposal'));
+      navigate('/login');
+    }
   };
 }
 
@@ -92,12 +81,10 @@ export function getLoginInfo() {
 
 export function logIn(proposal, password) {
   return async (dispatch) => {
-    dispatch(setLoading(true));
     const res = await sendLogIn(proposal, password);
 
     if (res.msg !== '') {
       dispatch(showErrorPanel(true, res.msg));
-      dispatch(setLoading(false));
       return;
     }
 
@@ -106,69 +93,17 @@ export function logIn(proposal, password) {
   };
 }
 
-export function forcedSignout() {
-  return (dispatch) => {
-    dispatch({ type: 'SIGNOUT' });
-  };
-}
-
 export function signOut() {
-  return (dispatch) => {
-    return sendSignOut().then(() => {
-      dispatch({ type: 'SIGNOUT' });
-      dispatch(resetLoginInfo());
-      dispatch(applicationFetched(false));
-    });
+  return async (dispatch) => {
+    dispatch(resetLoginInfo());
+    dispatch(applicationFetched(false));
+    await sendSignOut();
   };
 }
 
-export function getInitialState(navigate) {
-  return (dispatch) => {
+export function getInitialState() {
+  return async (dispatch) => {
     const state = {};
-
-    const sampleVideoInfo = fetch('mxcube/api/v0.1/sampleview/camera', {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'Content-type': 'application/json',
-      },
-    });
-    const detectorInfo = fetch('mxcube/api/v0.1/detector/', {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'Content-type': 'application/json',
-      },
-    });
-    const savedShapes = fetch('mxcube/api/v0.1/sampleview/shapes', {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'Content-type': 'application/json',
-      },
-    });
-    const sampleChangerInitialState = fetch(
-      'mxcube/api/v0.1/sample_changer/get_initial_state',
-      {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          Accept: 'application/json',
-          'Content-type': 'application/json',
-        },
-      },
-    );
-    const remoteAccess = fetch('mxcube/api/v0.1/ra/', {
-      method: 'GET',
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        'Content-type': 'application/json',
-      },
-    });
 
     const pchains = [
       fetchUIProperties()
@@ -193,8 +128,7 @@ export function getInitialState(navigate) {
           return json;
         })
         .catch(notify),
-      sampleVideoInfo
-        .then(parse)
+      fetchImageData()
         .then((json) => {
           state.Camera = json;
         })
@@ -204,8 +138,7 @@ export function getInitialState(navigate) {
           Object.assign(state, json);
         })
         .catch(notify),
-      detectorInfo
-        .then(parse)
+      fetchDetectorInfo()
         .then((json) => {
           state.detector = json;
         })
@@ -215,37 +148,38 @@ export function getInitialState(navigate) {
           state.taskParameters = json;
         })
         .catch(notify),
-      savedShapes
-        .then(parse)
+      fetchShapes()
         .then((json) => {
           state.shapes = json.shapes;
         })
         .catch(notify),
-      sampleChangerInitialState
-        .then(parse)
+      fetchSampleChangerInitialState()
         .then((json) => {
-          state.sampleChangerState = { state: json.state };
-          return json;
-        })
-        .then((json) => {
-          state.sampleChangerContents = json.contents;
-          return json;
-        })
-        .then((json) => {
-          state.loadedSample = json.loaded_sample;
-          return json;
-        })
-        .then((json) => {
-          state.sampleChangerCommands = json.cmds;
-          return json;
-        })
-        .then((json) => {
-          state.sampleChangerGlobalState = json.global_state;
-          return json;
+          const {
+            state: initialState,
+            contents,
+            loaded_sample,
+            cmds,
+            global_state,
+          } = json;
+
+          state.sampleChangerState = { state: initialState };
+          state.sampleChangerContents = contents;
+          state.loadedSample = loaded_sample;
+          state.sampleChangerCommands = cmds;
+          state.sampleChangerGlobalState = global_state;
         })
         .catch(notify),
-      remoteAccess
-        .then(parse)
+      fetchHarvesterInitialState()
+        .then((json) => {
+          const { state: initialState, contents, cmds, global_state } = json;
+          state.harvesterState = { state: initialState };
+          state.harvesterContents = contents;
+          state.harvesterCommands = cmds;
+          state.harvesterGlobalState = global_state;
+        })
+        .catch(notify),
+      fetchRemoteAccessState()
         .then((json) => {
           state.remoteAccess = json.data;
         })
@@ -267,21 +201,11 @@ export function getInitialState(navigate) {
         .catch(notify),
     ];
 
-    Promise.all(pchains).then(() => {
-      dispatch(setInitialState(state));
-      dispatch(applicationFetched(true));
-      dispatch(setLoading(false));
-    });
-  };
-}
+    await Promise.all(pchains);
 
-function parse(response) {
-  if (response.status >= 200 && response.status < 300) {
-    return response.json();
-  }
-  const error = new Error(response.statusText);
-  error.response = response;
-  throw error;
+    dispatch(setInitialState(state));
+    dispatch(applicationFetched(true));
+  };
 }
 
 function notify(error) {

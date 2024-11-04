@@ -1,18 +1,20 @@
-import logging
-import json
-import uuid
 import datetime
+import json
+import logging
+import uuid
 
 import flask
 import flask_security
 from flask_login import current_user
+from mxcubecore import HardwareRepository as HWR
 
 from mxcubeweb.core.components.component_base import ComponentBase
 from mxcubeweb.core.models.usermodels import User
-from mxcubeweb.core.util.networkutils import is_local_host, remote_addr
 from mxcubeweb.core.util.convertutils import convert_to_dict
-
-from mxcubecore import HardwareRepository as HWR
+from mxcubeweb.core.util.networkutils import (
+    is_local_host,
+    remote_addr,
+)
 
 
 class BaseUserManager(ComponentBase):
@@ -72,17 +74,6 @@ class BaseUserManager(ComponentBase):
 
         return user
 
-    def emit_observers_changed(self, message=""):
-        operator = self.app.usermanager.get_operator()
-
-        data = {
-            "observers": [_u.todict() for _u in self.app.usermanager.get_observers()],
-            "message": message,
-            "operator": operator.todict() if operator else {},
-        }
-
-        self.app.server.emit("observersChanged", data, namespace="/hwr")
-
     def update_active_users(self):
         for _u in User.query.all():
             if (
@@ -95,8 +86,11 @@ class BaseUserManager(ComponentBase):
                     f"Logged out inactive user {_u.username}"
                 )
                 self.app.server.user_datastore.deactivate_user(_u)
+                self.app.server.emit(
+                    "userChanged", room=_u.socketio_session_id, namespace="/hwr"
+                )
 
-        self.emit_observers_changed()
+        self.app.server.emit("observersChanged", namespace="/hwr")
 
     def update_operator(self, new_login=False):
         active_in_control = False
@@ -168,14 +162,6 @@ class BaseUserManager(ComponentBase):
             if not self.app.sample_changer.get_current_sample() and address:
                 self.app.sample_changer.get_sample_list()
 
-            # For the moment not loading queue from persistent storage (redis),
-            # uncomment to enable loading.
-            # self.app.queue.load_queue(session)
-            # logging.getLogger('MX3.HWR').info('Loaded queue')
-            logging.getLogger("MX3.HWR").info(
-                "[QUEUE] %s " % self.app.queue.queue_to_json()
-            )
-
             self.update_operator(new_login=True)
 
             msg = "User %s signed in" % user.username
@@ -191,7 +177,6 @@ class BaseUserManager(ComponentBase):
 
         # If operator logs out clear queue and sample list
         if self.is_operator():
-            self.app.queue.save_queue(flask.session)
             self.app.queue.clear_queue()
             HWR.beamline.sample_view.clear_all()
             self.app.lims.init_sample_list()
@@ -211,7 +196,7 @@ class BaseUserManager(ComponentBase):
         self.app.server.user_datastore.deactivate_user(user)
         flask_security.logout_user()
 
-        self.emit_observers_changed()
+        self.app.server.emit("observersChanged", namespace="/hwr")
 
     def is_authenticated(self):
         return current_user.is_authenticated()

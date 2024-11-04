@@ -4,7 +4,6 @@ const INITIAL_STATE = {
   observers: [],
   allowRemote: false,
   timeoutGivesControl: false,
-  showObserverDialog: false,
   chatMessageCount: 0,
 };
 
@@ -24,9 +23,6 @@ function remoteAccessReducer(state = INITIAL_STATE, action = {}) {
     case 'SET_OBSERVERS': {
       return { ...state, observers: action.observers };
     }
-    case 'SHOW_OBSERVER_DIALOG': {
-      return { ...state, showObserverDialog: action.show };
-    }
     case 'SET_ALLOW_REMOTE': {
       return { ...state, allowRemote: action.allow };
     }
@@ -37,7 +33,10 @@ function remoteAccessReducer(state = INITIAL_STATE, action = {}) {
       return { ...state, chatMessageCount: 0 };
     }
     case 'INC_CHAT_MESSAGE_COUNT': {
-      return { ...state, chatMessageCount: state.chatMessageCount + 1 };
+      return {
+        ...state,
+        chatMessageCount: state.chatMessageCount + action.count,
+      };
     }
     case 'SET_INITIAL_STATE': {
       return {

@@ -1,6 +1,6 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import { STATE } from '../actions/beamline';
-import { RUNNING, MOTOR_STATE } from '../constants';
+import { RUNNING, HW_STATE } from '../constants';
 
 /**
  *  Initial redux state for beamline hardwareObjects, object containing each beamline
@@ -257,7 +257,7 @@ function beamlineReducer(state = INITIAL_STATE, action = {}) {
     case 'UPDATE_MOTOR_STATE': {
       return {
         ...state,
-        motorInputDisable: action.value !== MOTOR_STATE.READY,
+        motorInputDisable: action.value !== HW_STATE.READY,
         motors: {
           ...state.motors,
           [action.name]: {
@@ -283,12 +283,6 @@ function beamlineReducer(state = INITIAL_STATE, action = {}) {
         beamlineActionsList: [...action.data.beamlineSetup.actionsList],
         availableMethods: action.data.beamlineSetup.availableMethods,
         energyScanElements: action.data.beamlineSetup.energyScanElements,
-      };
-    }
-    case 'BL_MACH_INFO': {
-      return {
-        ...state,
-        machinfo: { ...state.machinfo, ...action.info },
       };
     }
     case 'ACTION_SET_STATE': {

@@ -1,10 +1,9 @@
 from mxcubeweb.core.adapter.adapter_base import ActuatorAdapterBase
-from mxcubeweb.core.util.networkutils import RateLimited
-
 from mxcubeweb.core.models.adaptermodels import (
     FloatValueModel,
     HOActuatorValueChangeModel,
 )
+from mxcubeweb.core.util.networkutils import RateLimited
 
 
 class WavelengthAdapter(ActuatorAdapterBase):
@@ -13,12 +12,12 @@ class WavelengthAdapter(ActuatorAdapterBase):
     information on longer running processes.
     """
 
-    def __init__(self, ho, *args, **kwargs):
+    def __init__(self, ho, *args):
         """
         Args:
             (object): Hardware object.
         """
-        super(WavelengthAdapter, self).__init__(ho, *args, **kwargs)
+        super(WavelengthAdapter, self).__init__(ho, *args)
         self._type = "MOTOR"
 
         try:

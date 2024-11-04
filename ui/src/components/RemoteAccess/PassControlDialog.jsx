@@ -1,102 +1,97 @@
-/* eslint-disable react/jsx-handler-names */
-import React from 'react';
-import { connect } from 'react-redux';
-import { bindActionCreators } from 'redux';
-import { Modal, Button, Form } from 'react-bootstrap';
-import { requestControlResponse } from '../../actions/remoteAccess';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Modal, Button, Form, Alert } from 'react-bootstrap';
+import { respondToControlRequest } from '../../actions/remoteAccess';
+import { useForm } from 'react-hook-form';
+import { hideWaitDialog } from '../../actions/waitDialog';
 
-export class PassControlDialog extends React.Component {
-  constructor(props) {
-    super(props);
-    this.accept = this.accept.bind(this);
-    this.reject = this.reject.bind(this);
-    this.show = this.show.bind(this);
-    this.getObserver = this.getObserver.bind(this);
-  }
+function PassControlDialog() {
+  const dispatch = useDispatch();
 
-  getObserver() {
-    let observer = { name: '', message: '', requestsControl: false };
+  const inControl = useSelector((state) => state.login.user.inControl);
+  const requestingObs = useSelector((state) =>
+    state.remoteAccess.observers.find((o) => o.requestsControl),
+  );
 
-    for (const o of this.props.remoteAccess.observers) {
-      if (o.requestsControl) {
-        observer = o;
-        break;
-      }
+  const showModal = inControl && !!requestingObs;
+
+  const {
+    register,
+    formState,
+    handleSubmit: makeOnSubmit,
+    setError,
+    reset,
+  } = useForm({ defaultValues: { message: 'Here you go!' } });
+
+  const { isDirty, isSubmitted, errors } = formState;
+
+  async function handleSubmit(data, evt) {
+    const isAllow = evt.nativeEvent.submitter.name === 'allow';
+
+    if (!isAllow && !isDirty) {
+      setError(
+        'message',
+        { message: "Please explain why you're denying this request" },
+        { shouldFocus: true },
+      );
+      return;
     }
 
-    return observer;
+    await dispatch(respondToControlRequest(isAllow, data.message));
   }
 
-  show() {
-    let show = false;
-
-    if (this.props.login.user.inControl && this.getObserver().requestsControl) {
-      show = true;
+  useEffect(() => {
+    if (showModal) {
+      dispatch(hideWaitDialog()); // avoid conflict with any yet-to-be-dismissed dialog
+    } else {
+      reset(); // make sure form is properly reset if requester cancels
     }
+  }, [showModal, reset, dispatch]);
 
-    return show;
-  }
-
-  accept() {
-    const message = this.message.value;
-    this.props.requestControlResponse(true, message);
-  }
-
-  reject() {
-    const message = this.message.value;
-    this.props.requestControlResponse(false, message);
-  }
-
-  render() {
-    const observer = this.getObserver();
-
-    return (
-      <Modal show={this.show()} backdrop="static" style={{ zIndex: 10_001 }}>
+  return (
+    <Modal
+      show={showModal}
+      backdrop="static"
+      style={{ zIndex: 10_001 }}
+      data-default-styles
+    >
+      <Form onSubmit={makeOnSubmit(handleSubmit)}>
         <Modal.Header>
-          <Modal.Title>{observer.nickname} is asking for control</Modal.Title>
+          <Modal.Title>
+            {requestingObs?.nickname} is asking for control
+          </Modal.Title>
         </Modal.Header>
+
         <Modal.Body>
-          User "{observer.nickname}" is asking for control:
+          {requestingObs?.requestsControlMsg && (
+            <Alert>{requestingObs.requestsControlMsg}</Alert>
+          )}
+          <Form.Group controlId="passControlResponse">
+            <Form.Label>Your response:</Form.Label>
+            <Form.Control
+              {...register('message')}
+              type="textarea"
+              placeholder="Message"
+              rows="4"
+              isValid={isSubmitted && !errors.message}
+              isInvalid={isSubmitted && !!errors.message}
+            />
+            <Form.Control.Feedback type="invalid">
+              {errors.message?.message}
+            </Form.Control.Feedback>
+          </Form.Group>
         </Modal.Body>
         <Modal.Footer>
-          <Form.Control
-            ref={(ref) => {
-              this.message = ref;
-            }}
-            defaultValue="Here you go !"
-            type="textarea"
-            placeholder="Message"
-            rows="3"
-          />
-          <br />
-          <Button size="sm" variant="outline-secondary" onClick={this.accept}>
-            {' '}
-            Give control to "{observer.nickname}"{' '}
+          <Button type="submit" name="allow" variant="success">
+            Give control
           </Button>
-          <Button size="sm" variant="outline-secondary" onClick={this.reject}>
-            {' '}
-            Deny control{' '}
+          <Button type="submit" name="deny" variant="danger">
+            Deny control
           </Button>
         </Modal.Footer>
-      </Modal>
-    );
-  }
+      </Form>
+    </Modal>
+  );
 }
 
-function mapStateToProps(state) {
-  return {
-    remoteAccess: state.remoteAccess,
-    login: state.login,
-  };
-}
-
-function mapDispatchToProps(dispatch) {
-  return {
-    requestControlResponse: bindActionCreators(
-      requestControlResponse,
-      dispatch,
-    ),
-  };
-}
-
-export default connect(mapStateToProps, mapDispatchToProps)(PassControlDialog);
+export default PassControlDialog;

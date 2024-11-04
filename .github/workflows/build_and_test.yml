@@ -1,6 +1,10 @@
+---
+
 name: Python build and test
 
-on: [push, pull_request]
+"on":
+  pull_request: null
+  push: null
 
 jobs:
   build-linux:
@@ -8,9 +12,10 @@ jobs:
     strategy:
       max-parallel: 5
       matrix:
-        python-version: ["3.10"] #, "3.9", "3.10"]
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     # Skip `pull_request` runs on local PRs for which `push` runs are already triggered
+    # yamllint disable-line rule:line-length
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name != github.repository
 
     # Service containers to run with `container-job`
@@ -36,10 +41,14 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Pin micromamba version because of following issue:
+      # https://github.com/mamba-org/setup-micromamba/issues/225
       - name: Set up Conda environment
         uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: "latest"
+          create-args: >-
+            python=${{ matrix.python-version }}
+          micromamba-version: 1.5.10-0
           environment-file: conda-environment.yml
           cache-environment: true
           post-cleanup: "all"

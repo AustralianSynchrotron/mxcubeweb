@@ -1,19 +1,21 @@
 # -*- coding: utf-8 -*-
-from subprocess import check_output
-from os.path import isfile, join
 import logging
+from os.path import (
+    isfile,
+    join,
+)
+from subprocess import check_output
 
 from flask import (
     Blueprint,
-    jsonify,
     Response,
-    send_file,
-    request,
+    jsonify,
     render_template,
+    request,
+    send_file,
 )
-
-from mxcubecore.model import queue_model_objects as qmo
 from mxcubecore import HardwareRepository as HWR
+from mxcubecore.model import queue_model_objects as qmo
 
 from . import signals
 
@@ -28,6 +30,9 @@ def init_route(app, server, url_prefix):  # noqa: C901
         try:
             res = jsonify(app.lims.synch_with_lims())
         except Exception as ex:
+            logging.getLogger("MX3.HWR").exception(
+                "Could not synchronize with LIMS %s" % str(ex)
+            )
             res = (
                 "Could not synchronize with LIMS",
                 409,

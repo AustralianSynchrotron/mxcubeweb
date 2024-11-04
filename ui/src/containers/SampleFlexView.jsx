@@ -1,9 +1,6 @@
 import React from 'react';
-import withRouter from '../components/WithRouter';
 import { connect } from 'react-redux';
 import { Col } from 'react-bootstrap';
-
-import 'react-contexify/dist/ReactContexify.css';
 
 import { filterAction } from '../actions/sampleGrid';
 
@@ -156,7 +153,4 @@ function mapDispatchToProps(dispatch) {
   };
 }
 
-export default connect(
-  mapStateToProps,
-  mapDispatchToProps,
-)(withRouter(NewSampleFlexView));
+export default connect(mapStateToProps, mapDispatchToProps)(NewSampleFlexView);
