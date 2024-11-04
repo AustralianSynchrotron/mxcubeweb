@@ -35,13 +35,13 @@ spectree = "1.2.1"
 mock = "^4.0.3"
 "ruamel.yaml" = "^0.17.21"
 scandir = "^1.10.0"
-redis = "^4.3.5"
+redis = "^5.0.1"
 jsonschema = "^4.17.1"
 pydantic = ">=2.8.2,<2.9.0"
 PyDispatcher = "^2.0.6"
 pytz = "^2022.6"
 tzlocal = "^4.2"
-mxcubecore = ">=1.169.0"
+mxcubecore = {git = "https://github.com/AustralianSynchrotron/mxcubecore.git", rev = "merge_main", extras=["prefect"]}
 mxcube-video-streamer = ">=1.5.0"
 
 [tool.poetry.group.dev.dependencies]
