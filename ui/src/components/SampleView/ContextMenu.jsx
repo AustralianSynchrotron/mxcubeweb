@@ -18,7 +18,6 @@ const BESPOKE_TASK_NAMES = new Set([
 export default class ContextMenu extends React.Component {
   constructor(props) {
     super(props);
-    this.toggleDrawGrid = this.toggleDrawGrid.bind(this);
     this.menuOptions = this.menuOptions.bind(this);
   }
 
@@ -34,24 +33,6 @@ export default class ContextMenu extends React.Component {
       grid: [],
       none: [],
     };
-    let twoDPoints = [];
-
-    if (this.props.enable2DPoints) {
-      twoDPoints = [
-        { text: 'divider', key: 4 },
-        {
-          text: 'Data Collection (Limited OSC)',
-          action: () => this.createPointAndShowModal('DataCollection'),
-          key: 5,
-        },
-        {
-          text: 'Characterisation (1 Image)',
-          action: () =>
-            this.createPointAndShowModal('Characterisation', { num_imags: 1 }),
-          key: 6,
-        },
-      ];
-    }
 
     generalTaskNames.forEach((tname) => {
       const task = this.props.taskForm.defaultParameters[tname];
@@ -160,8 +141,10 @@ export default class ContextMenu extends React.Component {
           key: 'energy_scan',
         },
         {
-          text: 'Go To Point',
-          action: () => this.goToPoint(),
+          text: 'Go to Point',
+          action: () => {
+            this.props.sampleViewActions.moveToPoint(this.props.shape.id);
+          },
           key: 5,
         },
         {
@@ -242,9 +225,25 @@ export default class ContextMenu extends React.Component {
       ],
       GridGroup: [{ text: 'Save Grid', action: () => this.saveGrid(), key: 1 }],
       GridGroupSaved: [
+        ...(this.props.enableNativeMesh
+          ? [
+              {
+                text: 'Mesh Scan',
+                action: () => this.showModal('Mesh'),
+                key: 'mesh_scan',
+              },
+            ]
+          : []),
         {
-          text: 'Centring Point on cell',
-          action: () => this.createCollectionOnCell(),
+          text: 'Centring Point on Cell',
+          action: () => {
+            const { cellCenter } = this.props.shape;
+            this.props.sampleViewActions.add2DPoint(
+              cellCenter[0],
+              cellCenter[1],
+              'SAVED',
+            );
+          },
           key: 5,
         },
         { text: 'divider', key: 2 },
@@ -253,31 +252,52 @@ export default class ContextMenu extends React.Component {
         { text: 'Delete', action: () => this.removeShape(), key: 4 },
       ],
       NONE: [
-        { text: 'Go To Beam', action: () => this.goToBeam(), key: 1 },
+        {
+          text: 'Go to Beam',
+          action: () => {
+            {
+              const { sampleViewX, sampleViewY } = this.props;
+              this.props.sampleViewActions.moveToBeam(sampleViewX, sampleViewY);
+            }
+          },
+          key: 1,
+        },
         {
           text: 'Measure Distance',
-          action: () => this.measureDistance(),
+          action: () => {
+            this.props.sampleViewActions.measureDistance(true);
+          },
           key: 2,
         },
         this.props.getControlAvailability('draw_grid') && {
           text: 'Draw Grid',
-          action: () => this.toggleDrawGrid(),
+          action: () => {
+            this.props.sampleViewActions.toggleDrawGrid();
+          },
           key: 3,
         },
-        ...twoDPoints,
+        ...(this.props.enable2DPoints
+          ? [
+              { text: 'divider', key: 4 },
+              {
+                text: 'Data Collection (Limited OSC)',
+                action: () => this.createPointAndShowModal('DataCollection'),
+                key: 5,
+              },
+              {
+                text: 'Characterisation (1 Image)',
+                action: () =>
+                  this.createPointAndShowModal('Characterisation', {
+                    num_imags: 1,
+                  }),
+                key: 6,
+              },
+            ]
+          : []),
         { text: 'divider', key: 7 },
         ...genericTasks.none,
-        genericTasks.grid.none > 0 ? { text: 'divider', key: 7 } : {},
       ],
     };
-
-    if (this.props.enableNativeMesh) {
-      options.GridGroupSaved.unshift({
-        text: 'Mesh Scan',
-        action: () => this.showModal('Mesh'),
-        key: 'mesh_scan',
-      });
-    }
 
     Object.keys(this.props.availableMethods).forEach((key) => {
       if (!this.props.availableMethods[key]) {
@@ -299,7 +319,21 @@ export default class ContextMenu extends React.Component {
   showModal(modalName, extraParams = {}, _shape = null) {
     const { sampleID, shape, sampleData, defaultParameters } = this.props;
 
-    const sid = _shape ? _shape.id : shape.id;
+    if (this.props.clickCentring) {
+      this.props.sampleViewActions.stopClickCentring();
+      this.props.sampleViewActions.acceptCentring();
+    }
+
+    if (!sampleData) {
+      this.props.showErrorPanel(
+        true,
+        'There is no sample mounted, cannot collect data.',
+      );
+
+      return;
+    }
+
+    const sid = _shape ? _shape.id : shape?.id;
     if (Array.isArray(sid)) {
       // we remove any line
       // in case we have selected (by drawing a box) two points
@@ -316,11 +350,6 @@ export default class ContextMenu extends React.Component {
       }
     }
 
-    if (this.props.clickCentring) {
-      this.props.sampleViewActions.stopClickCentring();
-      this.props.sampleViewActions.acceptCentring();
-    }
-
     const type =
       modalName === 'Generic' ? extraParams.type : modalName.toLowerCase();
     const name =
@@ -332,50 +361,31 @@ export default class ContextMenu extends React.Component {
 
     params = getLastUsedParameters(type, params);
 
-    if (sampleData) {
-      const [cell_count, numRows, numCols] = shape.gridData
-        ? [
-            shape.gridData.numCols * shape.gridData.numRows,
-            shape.gridData.numRows,
-            shape.gridData.numCols,
-          ]
-        : ['none', 0, 0];
+    const [cell_count, numRows, numCols] = shape?.gridData
+      ? [
+          shape.gridData.numCols * shape.gridData.numRows,
+          shape.gridData.numRows,
+          shape.gridData.numCols,
+        ]
+      : ['none', 0, 0];
 
-      this.props.showForm(
-        modalName,
-        [sampleID],
-        {
-          parameters: {
-            ...params,
-            ...extraParams,
-            prefix: sampleData.defaultPrefix,
-            name,
-            subdir: `${this.props.groupFolder}${sampleData.defaultSubDir}`,
-            cell_count,
-            numRows,
-            numCols,
-          },
-          type,
+    this.props.showForm(
+      modalName,
+      [sampleID],
+      {
+        parameters: {
+          ...params,
+          ...extraParams,
+          prefix: sampleData.defaultPrefix,
+          name,
+          subdir: `${this.props.groupFolder}${sampleData.defaultSubDir}`,
+          cell_count,
+          numRows,
+          numCols,
         },
-        sid,
-      );
-    } else {
-      this.props.showErrorPanel(
-        true,
-        'There is no sample mounted, cannot collect data.',
-      );
-    }
-  }
-
-  createCollectionOnCell() {
-    const { cellCenter } = this.props.shape;
-    this.createPoint(cellCenter[0], cellCenter[1]);
-  }
-
-  createPoint(x, y, cb = null) {
-    this.props.sampleViewActions.addShape(
-      { screenCoord: [x, y], t: '2DP', state: 'SAVED' },
-      cb,
+        type,
+      },
+      sid,
     );
   }
 
@@ -385,6 +395,7 @@ export default class ContextMenu extends React.Component {
     }
 
     this.props.sampleViewActions.acceptCentring();
+
     // associate the newly saved shape to an existing task with -1 shape.
     // Fixes issues when the task is added before a shape
     const { tasks } = this.props.sampleData;
@@ -404,18 +415,6 @@ export default class ContextMenu extends React.Component {
     }
   }
 
-  goToPoint() {
-    this.props.sampleViewActions.moveToPoint(this.props.shape.id);
-  }
-
-  goToBeam() {
-    const { imageX, imageY, imageRatio } = this.props;
-    this.props.sampleViewActions.moveToBeam(
-      imageX / imageRatio,
-      imageY / imageRatio,
-    );
-  }
-
   removeShape() {
     if (this.props.clickCentring) {
       this.props.sampleViewActions.abortCentring();
@@ -424,24 +423,20 @@ export default class ContextMenu extends React.Component {
     this.props.sampleViewActions.deleteShape(this.props.shape.id);
   }
 
-  measureDistance() {
-    this.props.sampleViewActions.measureDistance(true);
-  }
-
-  toggleDrawGrid() {
-    this.props.sampleViewActions.toggleDrawGrid();
-  }
-
   saveGrid() {
-    const gd = { ...this.props.shape.gridData };
-    this.props.sampleViewActions.addShape({ t: 'G', ...gd });
+    const { gridData } = this.props.shape;
+    this.props.sampleViewActions.addShape({ t: 'G', ...gridData });
     this.props.sampleViewActions.toggleDrawGrid();
   }
 
   createPointAndShowModal(name, extraParams = {}) {
-    const { imageX, imageY, imageRatio } = this.props;
-    this.createPoint(imageX / imageRatio, imageY / imageRatio, (shape) =>
-      this.showModal(name, {}, shape, extraParams),
+    const { sampleViewX, sampleViewY } = this.props;
+
+    this.props.sampleViewActions.add2DPoint(
+      sampleViewX,
+      sampleViewY,
+      'SAVED',
+      (shape) => this.showModal(name, {}, shape, extraParams),
     );
   }
 
@@ -486,7 +481,7 @@ export default class ContextMenu extends React.Component {
     const menuOptions = this.menuOptions();
     let optionList = [];
 
-    if (this.props.sampleID !== undefined) {
+    if (this.props.shape && this.props.sampleID) {
       optionList = menuOptions[this.props.shape.type].map(this.listOptions);
     } else {
       optionList = menuOptions.NONE.map(this.listOptions);

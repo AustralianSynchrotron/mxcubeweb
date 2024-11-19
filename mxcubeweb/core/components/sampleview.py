@@ -274,7 +274,6 @@ class SampleView(ComponentBase):
 
     def update_shapes(self, shapes):
         updated_shapes = []
-
         for s in shapes:
             shape_data = from_camel(s)
             pos = []
@@ -285,6 +284,8 @@ class SampleView(ComponentBase):
             # If shape does not exist add it
             if not shape:
                 refs, t = shape_data.pop("refs", []), shape_data.pop("t", "")
+                state = shape_data.pop("state", "SAVED")
+                user_state = shape_data.pop("user_state", "SAVED")
 
                 # Store pixels per mm for third party software, to facilitate
                 # certain calculations
@@ -329,13 +330,15 @@ class SampleView(ComponentBase):
                             pos.append(center_positions)
 
                         shape = HWR.beamline.sample_view.add_shape_from_mpos(
-                            pos, (x, y), t
+                            pos, (x, y), t, state, user_state
                         )
                     except Exception:
                         logging.getLogger("HWR.MX3").info(shape_data)
 
                 else:
-                    shape = HWR.beamline.sample_view.add_shape_from_refs(refs, t)
+                    shape = HWR.beamline.sample_view.add_shape_from_refs(
+                        refs, t, state, user_state
+                    )
 
             # shape will be none if creation failed, so we check if shape exists
             # before setting additional parameters
@@ -438,9 +441,9 @@ class SampleView(ComponentBase):
     def set_centring_method(self, method):
         if method == CENTRING_METHOD.LOOP:
             msg = "Using automatic loop centring when mounting samples"
-            self.app.CENTRING_METHOD = CENTRING_METHOD.LOOP
+            HWR.beamline.queue_manager.centring_method = CENTRING_METHOD.LOOP
         else:
             msg = "Using click centring when mounting samples"
-            self.app.CENTRING_METHOD = CENTRING_METHOD.MANUAL
+            HWR.beamline.queue_manager.centring_method = CENTRING_METHOD.MANUAL
 
         logging.getLogger("user_level_log").info(msg)

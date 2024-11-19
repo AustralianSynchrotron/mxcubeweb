@@ -370,7 +370,7 @@ export default class SampleImage extends React.Component {
 
     const group = this.canvas.getActiveObject();
     const clickPoint = new fabric.Point(e.offsetX, e.offsetY);
-    let ctxMenuObj = { type: 'NONE' };
+    let ctxMenuObj;
     let objectFound = false;
     // Existing selection clicked
     if (
@@ -500,7 +500,15 @@ export default class SampleImage extends React.Component {
       this.canvas.discardActiveObject();
     }
 
-    showContextMenu(true, ctxMenuObj, e.pageX, e.pageY, e.offsetX, e.offsetY);
+    const { imageRatio } = this.props;
+    showContextMenu(
+      true,
+      ctxMenuObj,
+      e.pageX,
+      e.pageY,
+      e.offsetX / imageRatio,
+      e.offsetY / imageRatio,
+    );
   }
 
   // eslint-disable-next-line sonarjs/cognitive-complexity
@@ -736,8 +744,10 @@ export default class SampleImage extends React.Component {
 
     if (grid.state === 'HIDDEN') {
       grid.state = 'SAVED';
+      grid.user_state = 'SAVED';
     } else {
       grid.state = 'HIDDEN';
+      grid.user_state = 'HIDDEN';
     }
 
     this.props.sampleViewActions.updateShapes([grid]);

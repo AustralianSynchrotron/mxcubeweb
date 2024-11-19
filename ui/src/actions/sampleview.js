@@ -46,11 +46,11 @@ export function setMotorStep(role, value) {
 
 export function showContextMenu(
   show,
-  shape = { type: 'NONE' }, // eslint-disable-line unicorn/no-object-as-default-parameter
-  pageX = 0,
-  pageY = 0,
-  imageX = 0,
-  imageY = 0,
+  shape,
+  pageX,
+  pageY,
+  sampleViewX,
+  sampleViewY,
 ) {
   return {
     type: 'SHOW_CONTEXT_MENU',
@@ -58,8 +58,8 @@ export function showContextMenu(
     shape,
     pageX,
     pageY,
-    imageX,
-    imageY,
+    sampleViewX,
+    sampleViewY,
   };
 }
 
@@ -216,6 +216,14 @@ export function acceptCentring() {
 
 export function moveToBeam(x, y) {
   return () => sendMoveToBeam(x, y);
+}
+
+export function add2DPoint(x, y, state, successCb) {
+  return (dispatch) => {
+    return dispatch(
+      addShape({ t: '2DP', screenCoord: [x, y], state }, successCb),
+    );
+  };
 }
 
 export function addShape(shapeData = {}, successCb = null) {
