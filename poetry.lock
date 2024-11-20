@@ -2980,7 +2980,7 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
 reference = "merge_main"
-resolved_reference = "b6392a0b09120ff97fe65358bd74104db931691e"
+resolved_reference = "ec7c491961bf3be9bc1e21dea0214319ec47d708"
 
 [[package]]
 name = "myst-parser"
