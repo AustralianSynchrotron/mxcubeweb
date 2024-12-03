@@ -44,7 +44,7 @@ class BeamlineActionsContainer extends React.Component {
     });
 
     this.plotIdByAction[this.props.currentAction.name] = null;
-    this.props.startBeamlineAction(cmdName, parameters, showOutput);
+    this.props.startAction(cmdName, parameters, showOutput);
   }
 
   hideOutput() {
@@ -61,6 +61,10 @@ class BeamlineActionsContainer extends React.Component {
 
     const defaultDialogPosition = { x: -100, y: 100 };
 
+    if (this.props.actionsList.length === 0) {
+      return null;
+    }
+
     return (
       <>
         <Dropdown
@@ -72,6 +76,8 @@ class BeamlineActionsContainer extends React.Component {
           <Dropdown.Toggle
             variant="outline-secondary"
             id="beamline-actions-dropdown"
+            size="sm"
+            style={{ width: '150px' }}
           >
             Beamline Actions
           </Dropdown.Toggle>
@@ -87,11 +93,10 @@ class BeamlineActionsContainer extends React.Component {
 
               return (
                 <Dropdown.Item
-                  style={{ width: '250px' }}
                   className="d-flex justify-content-between align-items-start"
                   key={i}
                 >
-                  <div className="ms-2 me-auto">
+                  <div className="mx-2">
                     <div className="fw-bold">{cmdUsername}</div>
                   </div>
                   <BeamlineActionControl
@@ -100,9 +105,9 @@ class BeamlineActionsContainer extends React.Component {
                     handleStartAction={
                       cmd.argument_type === 'List'
                         ? this.startAction
-                        : () => this.props.startBeamlineAction(cmdName, {})
+                        : () => this.props.startAction(cmdName, {})
                     }
-                    handleStopAction={this.props.stopBeamlineAction}
+                    handleStopAction={this.props.stopAction}
                     handleShowOutput={this.props.showOutput}
                     state={cmdState}
                     disabled={disabled}
@@ -126,8 +131,9 @@ class BeamlineActionsContainer extends React.Component {
           isActionRunning={currentActionRunning}
           actionMessages={this.props.currentAction.messages}
           handleSetActionArgument={this.props.setArgumentValue}
-          handleStopAction={this.props.stopBeamlineAction}
-          handleStartAction={this.props.startBeamlineAction}
+          handleStopAction={this.props.stopAction}
+          handleStartAction={this.startAction}
+          handleStartAnnotatedAction={this.props.startAction}
           handleOnPlotDisplay={this.newPlotDisplayed}
           plotId={this.plotIdByAction[currentActionName]}
         />
@@ -144,8 +150,8 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    startBeamlineAction: bindActionCreators(startBeamlineAction, dispatch),
-    stopBeamlineAction: bindActionCreators(stopBeamlineAction, dispatch),
+    startAction: bindActionCreators(startBeamlineAction, dispatch),
+    stopAction: bindActionCreators(stopBeamlineAction, dispatch),
     showOutput: bindActionCreators(showActionOutput, dispatch),
     hideOutput: bindActionCreators(hideActionOutput, dispatch),
     setArgumentValue: bindActionCreators(setArgumentValue, dispatch),

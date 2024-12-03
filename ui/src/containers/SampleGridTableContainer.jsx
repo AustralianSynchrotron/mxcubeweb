@@ -2,23 +2,13 @@
 /* eslint-disable react/jsx-handler-names */
 /* eslint-disable sonarjs/no-duplicate-string */
 import React from 'react';
-import withRouter from '../components/WithRouter';
+import withNavigate from '../components/withNavigate';
 import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
-import {
-  Row,
-  Col,
-  Table,
-  OverlayTrigger,
-  Tooltip,
-  Button,
-  Dropdown,
-} from 'react-bootstrap';
+import { Row, Col, Table, Button, Dropdown } from 'react-bootstrap';
 
 import LazyLoad, { forceVisible } from 'react-lazyload';
 import Collapsible from 'react-collapsible';
-
-import 'react-contexify/dist/ReactContexify.css';
 
 import { MdRemove, MdFlare, Md360 } from 'react-icons/md';
 import {
@@ -33,7 +23,7 @@ import { BiMenu } from 'react-icons/bi';
 
 import MXContextMenu from '../components/GenericContextMenu/MXContextMenu';
 
-import classNames from 'classnames';
+import cx from 'classnames';
 
 import Slider from 'react-slick';
 import 'slick-carousel/slick/slick.css';
@@ -47,9 +37,9 @@ import {
   showGenericContextMenu,
 } from '../actions/sampleGrid';
 
-import { deleteTask, addSampleAndMount } from '../actions/queue';
+import { deleteTask } from '../actions/queue';
 
-import { unloadSample } from '../actions/sampleChanger';
+import { unmountSample, mountSample } from '../actions/sampleChanger';
 
 import { showTaskForm } from '../actions/taskForm';
 
@@ -61,6 +51,7 @@ import SampleIsaraView from './SampleIsaraView';
 import { SampleGridTableItem } from '../components/SampleGrid/SampleGridTableItem';
 
 import { TaskItem } from '../components/SampleGrid/TaskItem';
+import TooltipTrigger from '../components/TooltipTrigger';
 
 const SETTINGS = {
   dots: false,
@@ -77,7 +68,6 @@ class SampleGridTableContainer extends React.Component {
     this.onMouseDown = this.onMouseDown.bind(this);
     this.onMouseUp = this.onMouseUp.bind(this);
     this.onMouseMove = this.onMouseMove.bind(this);
-    this.onKeyDown = this.onKeyDown.bind(this);
 
     this.sampleGridItemsSelectedHandler =
       this.sampleGridItemsSelectedHandler.bind(this);
@@ -114,11 +104,6 @@ class SampleGridTableContainer extends React.Component {
     this.unmount = this.unmount.bind(this);
   }
 
-  componentDidMount() {
-    document.addEventListener('keydown', this.onKeyDown, false);
-    document.addEventListener('click', this.onClick, false);
-  }
-
   shouldComponentUpdate(nextProps) {
     return (
       this.props.queue.queue !== nextProps.queue.queue ||
@@ -126,11 +111,6 @@ class SampleGridTableContainer extends React.Component {
         Object.keys(nextProps.sampleList) ||
       this.props.order !== nextProps.order
     );
-  }
-
-  componentWillUnmount() {
-    document.removeEventListener('keydown', this.onKeyDown);
-    document.removeEventListener('click', this.onClick);
   }
 
   /**
@@ -223,8 +203,8 @@ class SampleGridTableContainer extends React.Component {
     const selectionRubberBand = document.querySelector('#selectionRubberBand');
     selectionRubberBand.style.top = `${e.clientY}px`;
     selectionRubberBand.style.left = `${e.clientX}px`;
-    selectionRubberBand.style.width = '0px';
-    selectionRubberBand.style.height = '0px';
+    selectionRubberBand.style.width = 0;
+    selectionRubberBand.style.height = 0;
     this.showRubberBand = true;
 
     if (this.props.contextMenu.show) {
@@ -309,8 +289,8 @@ class SampleGridTableContainer extends React.Component {
   currentSample(sampleID) {
     let current = false;
 
-    if (this.props.queue.current.sampleID) {
-      current = this.props.queue.current.sampleID === sampleID;
+    if (this.props.queue.currentSampleID) {
+      current = this.props.queue.currentSampleID === sampleID;
     } else if (this.props.sampleChanger.loadedSample.address) {
       current = this.props.sampleChanger.loadedSample.address === sampleID;
     }
@@ -496,17 +476,14 @@ class SampleGridTableContainer extends React.Component {
 
     return (
       <>
-        {puck ? (
-          <span className="span-container-code"> {puckCode} </span>
-        ) : null}
-        <OverlayTrigger
+        {puck && <span className="span-container-code"> {puckCode} </span>}
+        <TooltipTrigger
+          id="pick-sample-tooltip"
           placement="auto"
-          overlay={
-            <Tooltip id="pick-sample">
-              {pickSample
-                ? 'Pick samples/ Add to Queue'
-                : 'Unpick samples / Remove from Queue'}
-            </Tooltip>
+          tooltipContent={
+            pickSample
+              ? 'Pick samples/ Add to Queue'
+              : 'Unpick samples / Remove from Queue'
           }
         >
           <Button
@@ -518,7 +495,7 @@ class SampleGridTableContainer extends React.Component {
           >
             <i>{icon}</i>
           </Button>
-        </OverlayTrigger>
+        </TooltipTrigger>
       </>
     );
   }
@@ -596,7 +573,7 @@ class SampleGridTableContainer extends React.Component {
         const key = sample.sampleID;
         const picked = this.props.inQueue(sample.sampleID);
 
-        const classes = classNames('samples-grid-table-li', {
+        const classes = cx('samples-grid-table-li', {
           'samples-grid-table-item-selected':
             this.props.selected[sample.sampleID],
           'samples-grid-table-item-to-be-collected': picked,
@@ -678,7 +655,7 @@ class SampleGridTableContainer extends React.Component {
     const key = sample.sampleID;
     const picked = this.props.inQueue(sample.sampleID);
 
-    const classes = classNames('samples-grid-table-li', {
+    const classes = cx('samples-grid-table-li', {
       'samples-grid-table-item-selected': this.props.selected[key],
       'samples-grid-table-item-to-be-collected': picked,
       'samples-grid-table-item-collected': isCollected(sample),
@@ -1149,13 +1126,13 @@ class SampleGridTableContainer extends React.Component {
     });
 
     if (sampleData) {
-      this.props.addSampleAndMount(sampleData);
-      this.props.router.navigate('/datacollection', { replace: true });
+      this.props.mountSample(sampleData);
+      this.props.navigate('/datacollection', { replace: true });
     }
   }
 
   unmount() {
-    this.props.unloadSample();
+    this.props.unmountSample();
   }
 
   renderTaskContextMenuItems() {
@@ -1296,6 +1273,7 @@ class SampleGridTableContainer extends React.Component {
             show={this.props.contextMenu.show}
             x={this.props.contextMenu.x}
             y={this.props.contextMenu.y}
+            showGenericContextMenu={this.props.showGenericContextMenu}
           >
             {this.renderContextMenu(this.props.contextMenu.id)}
           </MXContextMenu>
@@ -1364,13 +1342,13 @@ function mapDispatchToProps(dispatch) {
   return {
     showTaskParametersForm: bindActionCreators(showTaskForm, dispatch),
     deleteTask: bindActionCreators(deleteTask, dispatch),
-    unloadSample: bindActionCreators(unloadSample, dispatch),
+    unmountSample: bindActionCreators(unmountSample, dispatch),
     toggleMovableAction: (key) => dispatch(toggleMovableAction(key)),
     showGenericContextMenu: (show, id, x, y) =>
       dispatch(showGenericContextMenu(show, id, x, y)),
     selectSamples: (keys, selected) =>
       dispatch(selectSamplesAction(keys, selected)),
-    addSampleAndMount: bindActionCreators(addSampleAndMount, dispatch),
+    mountSample: bindActionCreators(mountSample, dispatch),
     showDialog: bindActionCreators(showDialog, dispatch),
   };
 }
@@ -1378,4 +1356,4 @@ function mapDispatchToProps(dispatch) {
 export default connect(
   mapStateToProps,
   mapDispatchToProps,
-)(withRouter(SampleGridTableContainer));
+)(withNavigate(SampleGridTableContainer));

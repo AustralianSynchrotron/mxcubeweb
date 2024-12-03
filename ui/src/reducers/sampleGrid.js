@@ -32,8 +32,7 @@ const INITIAL_STATE = {
     notCollected: false,
     cellFilter: '',
     puckFilter: '',
-    limsFilter: false,
-    useFilter: false,
+    limsSamples: false,
   },
 };
 
@@ -42,10 +41,9 @@ function sampleGridReducer(state = INITIAL_STATE, action = {}) {
   // eslint-disable-next-line sonarjs/max-switch-cases
   switch (action.type) {
     case 'SET_QUEUE': {
-      const sampleList = { ...state.sampleList };
       return {
         ...state,
-        sampleList: Object.assign(sampleList, action.sampleList),
+        sampleList: { ...action.sampleList },
       };
     }
     // Set the list of samples (sampleList), clearing any existing list
@@ -76,9 +74,6 @@ function sampleGridReducer(state = INITIAL_STATE, action = {}) {
       }
 
       return { ...state, sampleList, order };
-    }
-    case 'SET_SAMPLE_ORDER': {
-      return { ...state, order: action.order };
     }
     case 'SET_SAMPLES_INFO': {
       const sampleList = {};

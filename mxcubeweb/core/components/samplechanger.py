@@ -1,21 +1,22 @@
 # -*- coding: utf-8 -*-
 import logging
-import time
-import gevent
 
-from mxcubecore import queue_entry
+import gevent
 from mxcubecore import HardwareRepository as HWR
+from mxcubecore import queue_entry
 
 from mxcubeweb.core.components.component_base import ComponentBase
-from mxcubeweb.core.components.queue import COLLECTED, UNCOLLECTED
+from mxcubeweb.core.components.queue import (
+    COLLECTED,
+    UNCOLLECTED,
+)
 
 
 # TO CONSIDER:
-# This should maybe be made into a adapter instead of a component
+# This should maybe be made into an adapter instead of a component
 class SampleChanger(ComponentBase):
     def __init__(self, app, config):
         super().__init__(app, config)
-        patch_queue_entry_mount_sample()
 
     def init_signals(self):
         from mxcubeweb.routes import signals
@@ -35,6 +36,10 @@ class SampleChanger(ComponentBase):
         if HWR.beamline.sample_changer_maintenance is not None:
             HWR.beamline.sample_changer_maintenance.connect(
                 "globalStateChanged", signals.sc_maintenance_update
+            )
+
+            HWR.beamline.sample_changer_maintenance.connect(
+                "gripperChanged", self._gripper_changed
             )
 
     def get_sample_list(self):
@@ -58,7 +63,11 @@ class SampleChanger(ComponentBase):
             sample_data = {
                 "sampleID": s.get_address(),
                 "location": s.get_address(),
-                "sampleName": "Sample-%s" % s.get_address(),
+                "sampleName": s.get_name() or "Sample-%s" % s.get_address(),
+                "crystalUUID": s.get_id() or s.get_address(),
+                "proteinAcronym": (
+                    s.proteinAcronym if hasattr(s, "proteinAcronym") else ""
+                ),
                 "code": sample_dm,
                 "loadable": True,
                 "state": state,
@@ -92,7 +101,7 @@ class SampleChanger(ComponentBase):
         if current_sample:
             self.set_current_sample(current_sample["sampleID"])
 
-    def get_sc_contents(self):
+    def get_sc_contents(self):  # noqa: C901
         def _getElementStatus(e):
             if e.is_leaf():
                 if e.is_loaded():
@@ -130,6 +139,11 @@ class SampleChanger(ComponentBase):
             root_name = HWR.beamline.sample_changer.get_address()
 
             contents = {"name": root_name}
+
+            if hasattr(HWR.beamline.sample_changer, "get_room_temperature_mode"):
+                contents[
+                    "room_temperature_mode"
+                ] = HWR.beamline.sample_changer.get_room_temperature_mode()
 
             for element in HWR.beamline.sample_changer.get_components():
                 if element.is_present():
@@ -179,15 +193,13 @@ class SampleChanger(ComponentBase):
 
         sc = HWR.beamline.sample_changer
 
-        res = None
+        res = False
 
         try:
             signals.sc_load(sample["location"])
 
             sid = self.get_current_sample().get("sampleID", False)
             current_queue = self.app.queue.queue_to_dict()
-
-            # self.set_sample_to_be_mounted(sample["sampleID"])
 
             if sample["location"] != "Manual":
                 msg = "Mounting sample: %s (%s)" % (
@@ -204,15 +216,21 @@ class SampleChanger(ComponentBase):
                 if res is None:
                     res = True
                 if (
-                    res
-                    and self.app.CENTRING_METHOD == queue_entry.CENTRING_METHOD.LOOP
+                    res is not False
+                    and HWR.beamline.queue_manager.centring_method
+                    == queue_entry.CENTRING_METHOD.LOOP
                     and not HWR.beamline.diffractometer.in_plate_mode()
+                    and not self.app.harvester.mount_from_harvester()
                 ):
                     HWR.beamline.diffractometer.reject_centring()
                     msg = "Starting autoloop centring ..."
                     logging.getLogger("MX3.HWR").info(msg)
                     C3D_MODE = HWR.beamline.diffractometer.C3D_MODE
                     HWR.beamline.diffractometer.start_centring_method(C3D_MODE)
+                elif HWR.beamline.diffractometer.in_plate_mode():
+                    msg = "Starting autoloop Focusing ..."
+                    logging.getLogger("MX3.HWR").info(msg)
+                    sc.move_to_crystal_position(None)
 
             else:
                 msg = "Mounting sample: %s" % sample["sampleName"]
@@ -385,150 +403,8 @@ class SampleChanger(ComponentBase):
             logging.getLogger("MX3.HWR").exception("Could not get crystal List")
             return {"xtal_list": xtal_list}
 
-
-# Disabling C901 function is too complex (19)
-def queue_mount_sample(view, data_model, centring_done_cb, async_result):  # noqa: C901
-    from mxcubeweb.routes import signals
-    from mxcubeweb.app import MXCUBEApplication as mxcube
-
-    HWR.beamline.sample_view.clear_all()
-    logging.getLogger("user_level_log").info("Loading sample ...")
-    log = logging.getLogger("user_level_log")
-
-    loc = data_model.location
-    data_model.holder_length
-
-    robot_action_dict = {
-        "actionType": "LOAD",
-        "containerLocation": loc[1],
-        "dewarLocation": loc[0],
-        "sampleBarcode": data_model.code,
-        "sampleId": data_model.lims_id,
-        "sessionId": HWR.beamline.session.session_id,
-        "startTime": time.strftime("%Y-%m-%d %H:%M:%S"),
-    }
-
-    # devices that can move sample on beam
-    # (sample changer, plate holder)
-    # PlateManipulator is being consider as Sample changer
-    sample_mount_device = HWR.beamline.sample_changer
-
-    if (
-        sample_mount_device.get_loaded_sample()
-        and sample_mount_device.get_loaded_sample().get_address() == data_model.loc_str
-    ):
-        return
-
-    if hasattr(sample_mount_device, "__TYPE__"):
-        if sample_mount_device.__TYPE__ in ["Marvin", "CATS"]:
-            element = "%d:%02d" % loc
-            sample = {"location": element, "sampleID": element}
-            mxcube.sample_changer.mount_sample_clean_up(sample)
-        else:
-            sample = {
-                "location": data_model.loc_str,
-                "sampleID": data_model.loc_str,
-            }
-
-            try:
-                res = mxcube.sample_changer.mount_sample_clean_up(sample)
-            except RuntimeError:
-                res = False
-            logging.getLogger("user_level_log").info(
-                "Sample loading res: %s" % str(res)
-            )
-
-            # We need to investigte if the comment below is still valid
-            if not res == False:  # noqa: E712
-                # WARNING: explicit test of False return value.
-                # This is to preserve backward compatibility (load_sample was
-                # supposed to return None); if sample could not be loaded, but
-                # no exception is raised, let's skip the sample
-
-                raise queue_entry.QueueSkippEntryException(
-                    "Sample changer could not load sample", ""
-                )
-
-    robot_action_dict["endTime"] = time.strftime("%Y-%m-%d %H:%M:%S")
-    if sample_mount_device.has_loaded_sample():
-        robot_action_dict["status"] = "SUCCESS"
-    else:
-        robot_action_dict["message"] = "Sample was not loaded"
-        robot_action_dict["status"] = "ERROR"
-
-    HWR.beamline.lims.store_robot_action(robot_action_dict)
-
-    if not sample_mount_device.has_loaded_sample():
-        # Disables all related collections
-        logging.getLogger("user_level_log").info("Sample not loaded")
-        raise queue_entry.QueueSkippEntryException("Sample not loaded", "")
-    else:
-        signals.loaded_sample_changed(sample_mount_device.get_loaded_sample())
-        logging.getLogger("user_level_log").info("Sample loaded")
-        dm = HWR.beamline.diffractometer
-
-        use_custom_centring_routine = HWR.beamline.diffractometer.get_property(
-            "use_custom_centring_script", False
+    def _gripper_changed(self):
+        self.app.queue.queue_clear()
+        self.app.server.emit(
+            "queue", {"Signal": "update", "message": "all"}, namespace="/hwr"
         )
-
-        if not use_custom_centring_routine:
-            if dm is not None:
-                try:
-                    dm.connect("centringAccepted", centring_done_cb)
-                    centring_method = queue_entry.CENTRING_METHOD
-
-                    if centring_method == queue_entry.CENTRING_METHOD.MANUAL:
-                        msg = (
-                            "Manual centring used, waiting for"
-                            + " user to center sample"
-                        )
-                        log.warning(msg)
-                        dm.start_centring_method(dm.MANUAL3CLICK_MODE)
-                    elif centring_method in [
-                        queue_entry.CENTRING_METHOD.LOOP,
-                        queue_entry.CENTRING_METHOD.FULLY_AUTOMATIC,
-                    ]:
-                        if not dm.current_centring_procedure:
-                            dm.start_centring_method(dm.C3D_MODE)
-
-                        # NBNB  BUG . self and app are not avialble here
-                        if mxcube.AUTO_MOUNT_SAMPLE:
-                            msg = "Going to save centring automatically, please wait"
-                        else:
-                            msg = (
-                                "Centring in progress. Please save"
-                                + " the suggested centring or re-center"
-                            )
-
-                        log.warning(msg)
-                    else:
-                        dm.start_centring_method(dm.MANUAL3CLICK_MODE)
-
-                    logging.getLogger("user_level_log").info("Centring ...")
-                    centring_result = async_result.get()
-                    if centring_result["valid"]:
-                        logging.getLogger("user_level_log").info("Centring done !")
-                    else:
-                        if (
-                            centring_method
-                            == queue_entry.CENTRING_METHOD.FULLY_AUTOMATIC
-                        ):
-                            raise queue_entry.QueueSkippEntryException(
-                                "Could not center sample, skipping",
-                                "",
-                            )
-                        else:
-                            raise RuntimeError("Could not center sample")
-                except Exception:
-                    import traceback
-
-                    log.info("centring did not pass %s" % traceback.format_exc())
-                finally:
-                    dm.disconnect("centringAccepted", centring_done_cb)
-        else:
-            dm.disconnect("centringAccepted", centring_done_cb)
-
-
-def patch_queue_entry_mount_sample():
-    # Important, patch queue_entry.mount_sample with the mount_sample defined above
-    queue_entry.base_queue_entry.mount_sample = queue_mount_sample

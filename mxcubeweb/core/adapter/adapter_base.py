@@ -1,17 +1,21 @@
 import inspect
+import logging
 import traceback
 import typing
-import logging
-
-import pydantic
-import gevent
-
 from typing import Any
 
-from mxcubeweb.core.util.adapterutils import (
-    get_adapter_cls_from_hardware_object,
+import gevent
+from pydantic.v1 import (
+    Field,
+    ValidationError,
+    create_model,
 )
-from mxcubeweb.core.models.adaptermodels import HOModel, HOActuatorModel
+
+from mxcubeweb.core.models.adaptermodels import (
+    HOActuatorModel,
+    HOModel,
+)
+from mxcubeweb.core.util.adapterutils import get_adapter_cls_from_hardware_object
 
 
 class AdapterBase:
@@ -20,7 +24,7 @@ class AdapterBase:
     ATTRIBUTES = []
     METHODS = []
 
-    def __init__(self, ho, role, app, **kwargs):
+    def __init__(self, ho, role, app):
         """
         Args:
             (object): Hardware object to mediate for.
@@ -59,7 +63,7 @@ class AdapterBase:
     def execute_command(self, cmd_name, args):
         try:
             self._pydantic_model_for_command(cmd_name).validate(args)
-        except pydantic.ValidationError:
+        except ValidationError:
             logging.getLogger("MX3.HWR").exception(
                 f"Error when validating input {args} for command {cmd_name}"
             )
@@ -91,7 +95,7 @@ class AdapterBase:
 
         try:
             model["return"].validate({"return": value})
-        except pydantic.ValidationError:
+        except ValidationError:
             attr_name = t.call_args["cmd_name"]
             logging.getLogger("MX3.HWR").exception(
                 f"Return value of {self._name}.{attr_name} is of wrong type"
@@ -178,16 +182,16 @@ class AdapterBase:
 
         for _n, _t in typing.get_type_hints(attr).items():
             if _n != "return":
-                input_dict[_n] = (_t, pydantic.Field(alias=_n))
+                input_dict[_n] = (_t, Field(alias=_n))
             else:
                 if not inspect.isclass(_t):
                     _t = _t.__class__
 
-                output_dict[_n] = (_t, pydantic.Field(alias=_n))
+                output_dict[_n] = (_t, Field(alias=_n))
 
         return {
-            "args": pydantic.create_model(attr.__name__, **input_dict),
-            "return": pydantic.create_model(attr.__name__, **output_dict),
+            "args": create_model(attr.__name__, **input_dict),
+            "return": create_model(attr.__name__, **output_dict),
             "signature": list(input_dict.keys()),
         }
 
@@ -232,7 +236,7 @@ class AdapterBase:
 
                 try:
                     model["return"].validate({"return": value})
-                except pydantic.ValidationError:
+                except ValidationError:
                     logging.getLogger("MX3.HWR").exception(
                         "Return value of"
                         f" {self._name}.{attribute_name} is of wrong"
@@ -335,13 +339,14 @@ class AdapterBase:
 
 
 class ActuatorAdapterBase(AdapterBase):
-    def __init__(self, ho, *args, **kwargs):
+    def __init__(self, ho, *args):
         """
         Args:
             (object): Hardware object to mediate for.
             (str): The name of the object.
         """
-        super(ActuatorAdapterBase, self).__init__(ho, *args, **kwargs)
+        super(ActuatorAdapterBase, self).__init__(ho, *args)
+
         self._unique = False
 
         try:
@@ -349,7 +354,7 @@ class ActuatorAdapterBase(AdapterBase):
         except AttributeError:
             pass
 
-    # Dont't limit rate this method with utils.LimitRate, all sub-classes
+    # Don't limit rate this method with utils.LimitRate, all subclasses
     # will share this method thus all methods will be effected if limit rated.
     # Rather LimitRate the function calling this one.
     def value_change(self, *args, **kwargs):
@@ -369,7 +374,7 @@ class ActuatorAdapterBase(AdapterBase):
             (str): The actual value, after being set.
         Raises:
             ValueError: When conversion or treatment of value fails.
-            StopItteration: When a value change was interrupted (abort/cancel).
+            StopIteration: When a value change was interrupted (abort/cancel).
         """
         try:
             self._set_value(value)

@@ -1,65 +1,30 @@
 import React from 'react';
 import { Row, Col } from 'react-bootstrap';
 import Collapsible from 'react-collapsible';
-import { BsChevronUp, BsChevronDown } from 'react-icons/bs';
+import { BsChevronDown } from 'react-icons/bs';
 import EquipmentState from './EquipmentState';
-import './GenericEquipmentControl.css';
+import styles from './GenericEquipmentControl.module.css';
 
-export default class GenericEquipment extends React.Component {
-  handleRunCommand(cmd, formData) {
-    this.props.executeCommand(this.props.equipment.name, cmd, formData);
-  }
+export default function GenericEquipment(props) {
+  const { name, state, initialOpen, children } = props;
 
-  getCollapsibleHeaderOpen(cssClass) {
-    return <BsChevronUp className={cssClass} size="1em" />;
-  }
-
-  getCollapsibleHeaderClose(cssClass) {
-    return <BsChevronDown className={cssClass} size="1em" />;
-  }
-
-  getEquipmentState() {
-    return (
-      <EquipmentState
-        state={this.props.state}
-        equipmentName={this.props.name}
-        style={{
-          margin: '0px 0px 0px 0px',
-          width: 'inherit',
-          borderBottomLeftRadius: '0%',
-          borderBottomRightRadius: '0%',
-        }}
-      />
-    );
-  }
-
-  render() {
-    return (
-      <Row className="mb-3">
-        <Col sm={12} className="generic-equipment-container">
-          <Collapsible
-            open={this.props.CollapseOpen}
-            trigger={
-              <div>
-                {' '}
-                {this.getEquipmentState()}{' '}
-                {this.getCollapsibleHeaderClose('generic-equipment-arrow-p')}
-              </div>
-            }
-            triggerWhenOpen={
-              <div>
-                {' '}
-                {this.getEquipmentState()}{' '}
-                {this.getCollapsibleHeaderOpen('generic-equipment-arrow-p')}
-              </div>
-            }
-          >
-            <div className="generic-equipment-container-collapsible">
-              {this.props.children}
-            </div>
-          </Collapsible>
-        </Col>
-      </Row>
-    );
-  }
+  return (
+    <Row className="mb-3">
+      <Col sm={12} className={styles.container}>
+        <Collapsible
+          triggerClassName={styles.trigger}
+          triggerOpenedClassName={styles.trigger}
+          open={initialOpen}
+          trigger={
+            <>
+              <EquipmentState state={state} equipmentName={name} />
+              <BsChevronDown className={styles.chevron} size="1em" />
+            </>
+          }
+        >
+          <div className={styles.content}>{children}</div>
+        </Collapsible>
+      </Col>
+    </Row>
+  );
 }

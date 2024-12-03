@@ -5,26 +5,25 @@ monkey.patch_all(thread=False)
 # Disabling E402 (module level import not at top of file)
 # for the lines below as we are monkey patching
 import argparse  # noqa: E402
-import mock  # noqa: E402
 import os  # noqa: E402
-import redis  # noqa: E402
 import sys  # noqa: E402
 import traceback  # noqa: E402
+from pathlib import Path  # noqa: E402
 
-from mxcubeweb.server import Server as server  # noqa: E402
+import mock  # noqa: E402
+from mxcubecore import HardwareRepository as HWR  # noqa: E402
+
 from mxcubeweb.app import MXCUBEApplication as mxcube  # noqa: E402
 from mxcubeweb.config import Config  # noqa: E402
-from mxcubecore import HardwareRepository as HWR  # noqa: E402
+from mxcubeweb.server import Server as server  # noqa: E402
 
 sys.modules["Qub"] = mock.Mock()
 sys.modules["Qub.CTools"] = mock.Mock()
 
 
 def parse_args(argv):
-    XML_DIR = os.path.join(
-        os.path.join(os.path.dirname(__file__), os.pardir),
-        "test/HardwareObjectsMockup.xml/",
-    )
+    # by default load the 'demo' mocked beamline
+    hwr_directory = str(Path(Path(__file__).parents[1], "demo"))
 
     opt_parser = argparse.ArgumentParser(
         description="mxcube-web Backend server command line utility."
@@ -35,7 +34,7 @@ def parse_args(argv):
         "--repository",
         dest="hwr_directory",
         help="Hardware Repository XML files path",
-        default=XML_DIR,
+        default=hwr_directory,
     )
 
     opt_parser.add_argument(
@@ -108,17 +107,10 @@ def build_server_and_config(test=False, argv=None):
     cmdline_options = parse_args(argv)
 
     try:
-        db = redis.Redis()
-        db.ping()
-    except redis.RedisError:
-        print("No Redis server is running, exiting")
-        return (None, None)
-
-    try:
         # This refactoring (with other bits) allows you to pass a 'path1:path2' lookup path
         # as the hwr_directory. I need it for sensible managing of a multi-beamline test set-up
-        # without continuously editing teh main config files.
-        # Note that the machinery was all there in the core alrady. rhfogh.
+        # without continuously editing the main config files.
+        # Note that the machinery was all there in the core already. rhfogh.
         HWR.init_hardware_repository(cmdline_options.hwr_directory)
         config_path = HWR.get_hardware_repository().find_in_repository("mxcube-web")
 
@@ -127,7 +119,7 @@ def build_server_and_config(test=False, argv=None):
         if test:
             cfg.flask.USER_DB_PATH = "/tmp/mxcube-test-user.db"
 
-        server.init(cmdline_options, cfg, mxcube)
+        server.init(cmdline_options, cfg)
         mxcube.init(
             server,
             cmdline_options.allow_remote,
@@ -143,7 +135,7 @@ def build_server_and_config(test=False, argv=None):
         traceback.print_exc()
         raise
 
-    return (server, cfg)
+    return server, cfg
 
 
 def main():

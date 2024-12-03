@@ -1,11 +1,5 @@
 import json
 
-# Python 2 and 3 compatibility
-try:
-    unicode
-except:
-    unicode = str
-
 from fixture import client
 
 
@@ -21,6 +15,7 @@ def test_beamline_get_all_attribute(client):
 
     expected = [
         "beam",
+        "beam.aperture",
         "cryo",
         "data_publisher",
         "detector",
@@ -54,7 +49,7 @@ def test_beamline_get_all_attribute(client):
 
     assert isinstance(data["hardwareObjects"], dict)
     assert isinstance(data["actionsList"], list)
-    assert isinstance(data["path"], unicode)
+    assert isinstance(data["path"], str)
     assert len(data["energyScanElements"]) == 31
     assert isinstance(data["availableMethods"], dict)
     assert len(actual) == len(expected)
@@ -79,8 +74,10 @@ def test_beamline_get_attribute(client):
     ]
 
     for name, adapter_type in bl_attrs:
-        resp = client.get(f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}")
-        data = json.loads(resp.data)
+        resp = client.post(
+            f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}/data",
+        )
+        data = json.loads(resp.data)["return"]
 
         # Check for minimal set of attributes
         keys = ["name", "state", "value"]
@@ -102,7 +99,7 @@ def test_beamline_set_attribute(client):
     """
     bl_attrs = [
         ("resolution", "motor"),
-        ("energy", "motor"),
+        ("energy", "energy"),
         ("transmission", "motor"),
         ("safety_shutter", "nstate"),
         ("diffractometer.beamstop", "nstate"),
@@ -111,21 +108,20 @@ def test_beamline_set_attribute(client):
     ]
 
     for name, adapter_type in bl_attrs:
-        resp = client.get(f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}")
-        data = json.loads(resp.data)
-
+        resp = client.post(f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}/data")
+        data = json.loads(resp.data)["return"]
         new_value = data.get("value")
-
         resp = client.put(
-            f"/mxcube/api/v0.1/beamline/{adapter_type}/value",
+            f"/mxcube/api/v0.1/beamline/{adapter_type}/value/{name}",
             data=json.dumps({"name": name, "value": new_value}),
             content_type="application/json",
         )
 
-        resp = client.get(f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}")
-        data = json.loads(resp.data)
+        resp = client.post(f"/mxcube/api/v0.1/beamline/{adapter_type}/{name}/data")
+        data = json.loads(resp.data)["return"]
+        value = data.get("value", None)
 
-        assert data.get("value", None) == new_value
+        assert value == new_value
 
 
 def test_get_beam_info(client):
@@ -136,8 +132,8 @@ def test_get_beam_info(client):
     resp = client.get("/mxcube/api/v0.1/beamline/beam/info")
     data = json.loads(resp.data)
 
-    assert isinstance(data["currentAperture"], int)
-    assert len(data["apertureList"]) >= 0
+    assert isinstance(data["currentAperture"], str)
+    assert len(data["apertureList"]) > 0
     assert isinstance(data["position"][0], int)
     assert isinstance(data["position"][1], int)
     assert isinstance(data["size_x"], float)
@@ -151,5 +147,5 @@ def test_get_data_path(client):
 
     resp = client.get("/mxcube/api/v0.1/beamline/datapath")
     data = json.loads(resp.data)
-    assert isinstance(data["path"], unicode)
+    assert isinstance(data["path"], str)
     assert len(data) > 0

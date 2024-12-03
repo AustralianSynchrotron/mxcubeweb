@@ -1,21 +1,21 @@
-from enum import Enum
 import logging
+from enum import Enum
 
 from mxcubeweb.core.adapter.adapter_base import ActuatorAdapterBase
 from mxcubeweb.core.models.adaptermodels import (
-    NStateModel,
     HOActuatorValueChangeModel,
+    NStateModel,
     StrValueModel,
 )
 
 
 class NStateAdapter(ActuatorAdapterBase):
-    def __init__(self, ho, *args, **kwargs):
+    def __init__(self, ho, *args):
         """
         Args:
             (object): Hardware object.
         """
-        super(NStateAdapter, self).__init__(ho, *args, **kwargs)
+        super(NStateAdapter, self).__init__(ho, *args)
         self._value_change_model = HOActuatorValueChangeModel
 
         ho.connect("valueChanged", self._value_change)

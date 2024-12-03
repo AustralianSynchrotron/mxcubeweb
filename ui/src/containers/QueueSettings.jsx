@@ -11,9 +11,9 @@ import GroupFolderInput from './GroupFolderInput.jsx';
 import NumSnapshotsDropDown from './NumSnapshotsDropDown.jsx';
 
 import {
-  sendSetCentringMethod,
-  sendSetGroupFolder,
-  sendSetQueueSettings,
+  setCentringMethod,
+  setGroupFolder,
+  setQueueSettings,
   setAutoAddDiffPlan,
   setAutoMountSample,
 } from '../actions/queue';
@@ -34,7 +34,7 @@ class QueueSettings extends React.Component {
   setGroupFolderInput() {
     this.setState({ validationState: 'success' });
     /* eslint-enable react/no-set-state */
-    this.props.sendSetGroupFolder(this.inputValue.value);
+    this.props.setGroupFolder(this.inputValue.value);
   }
 
   setAutoAddDiffPlan(e) {
@@ -58,9 +58,9 @@ class QueueSettings extends React.Component {
 
   autoLoopCentringOnClick(e) {
     if (e.target.checked) {
-      this.props.sendSetCentringMethod(AUTO_LOOP_CENTRING);
+      this.props.setCentringMethod(AUTO_LOOP_CENTRING);
     } else {
-      this.props.sendSetCentringMethod(CLICK_CENTRING);
+      this.props.setCentringMethod(CLICK_CENTRING);
     }
   }
 
@@ -80,6 +80,7 @@ class QueueSettings extends React.Component {
               onChange={this.autoMountNextOnClick}
               checked={this.props.queueState.autoMountNext}
               label="Automount next sample"
+              id="auto-mount-next"
             />
           </Dropdown.Item>
           <Dropdown.Item>
@@ -91,6 +92,7 @@ class QueueSettings extends React.Component {
                 this.props.queueState.centringMethod === AUTO_LOOP_CENTRING
               }
               label="Auto loop centring"
+              id="auto-loop-centring"
             />
           </Dropdown.Item>
           <Dropdown.Item>
@@ -100,6 +102,7 @@ class QueueSettings extends React.Component {
               onChange={this.setAutoAddDiffPlan}
               checked={this.props.queueState.autoAddDiffplan}
               label="Auto add diffraction plan"
+              id="auto-add-diff-plan"
             />
           </Dropdown.Item>
           <Dropdown.Item>
@@ -107,13 +110,14 @@ class QueueSettings extends React.Component {
               type="checkbox"
               name="rememberParametersBetweenSamples"
               onChange={(e) => {
-                this.props.sendSetQueueSettings(
+                this.props.setQueueSettings(
                   'rememberParametersBetweenSamples',
                   e.target.checked,
                 );
               }}
               checked={this.props.queueState.rememberParametersBetweenSamples}
               label="Remember parameters between samples"
+              id="remember-params"
             />
           </Dropdown.Item>
           <Dropdown.Divider />
@@ -138,11 +142,11 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
   return {
-    sendSetGroupFolder: bindActionCreators(sendSetGroupFolder, dispatch),
+    setGroupFolder: bindActionCreators(setGroupFolder, dispatch),
     setAutoAddDiffPlan: bindActionCreators(setAutoAddDiffPlan, dispatch),
     setAutoMountSample: bindActionCreators(setAutoMountSample, dispatch),
-    sendSetCentringMethod: bindActionCreators(sendSetCentringMethod, dispatch),
-    sendSetQueueSettings: bindActionCreators(sendSetQueueSettings, dispatch),
+    setCentringMethod: bindActionCreators(setCentringMethod, dispatch),
+    setQueueSettings: bindActionCreators(setQueueSettings, dispatch),
   };
 }
 

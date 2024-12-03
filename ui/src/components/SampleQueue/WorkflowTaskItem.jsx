@@ -5,19 +5,14 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import {
-  ProgressBar,
-  Button,
-  Collapse,
-  OverlayTrigger,
-  Tooltip,
-} from 'react-bootstrap';
+import { ProgressBar, Button, Collapse } from 'react-bootstrap';
 import {
   TASK_UNCOLLECTED,
   TASK_COLLECTED,
   TASK_COLLECT_FAILED,
   TASK_RUNNING,
 } from '../../constants';
+import TooltipTrigger from '../TooltipTrigger';
 
 export default class WorkflowTaskItem extends Component {
   static propTypes = {
@@ -122,15 +117,11 @@ export default class WorkflowTaskItem extends Component {
     const pathEndPart = path.slice(-40);
 
     return (
-      <OverlayTrigger
-        placement="bottom"
-        rootClose
-        overlay={<Tooltip id="wedge-popover">{path}</Tooltip>}
-      >
+      <TooltipTrigger id="wedge-path-tooltip" tooltipContent={path}>
         <a style={{ flexGrow: 1 }}>
           .../{pathEndPart.slice(pathEndPart.indexOf('/') + 1)}
         </a>
-      </OverlayTrigger>
+      </TooltipTrigger>
     );
   }
 
@@ -162,10 +153,10 @@ export default class WorkflowTaskItem extends Component {
         <ProgressBar
           variant={pbarBsStyle}
           striped
-          style={{ marginBottom: '0px', height: '18px' }}
+          style={{ marginBottom: 0, height: '18px' }}
           min={0}
           max={1}
-          active={this.props.progress < 1}
+          animated={this.props.progress < 1}
           label={`${(this.props.progress * 100).toPrecision(3)} %`}
           now={this.props.progress}
         />
@@ -227,16 +218,17 @@ export default class WorkflowTaskItem extends Component {
               <b>
                 <span className="node-name" style={{ display: 'flex' }}>
                   {this.pointIDString(parameters)} {data.parameters.label}
-                  {state === TASK_RUNNING ? this.progressBar() : null}
+                  {state === TASK_RUNNING && this.progressBar()}
                 </span>
               </b>
-              {state === TASK_UNCOLLECTED ? (
+              {state === TASK_UNCOLLECTED && (
                 <i
+                  key="delete_task"
                   className="fa fa-times"
                   onClick={this.deleteTask}
                   style={delTaskCSS}
                 />
-              ) : null}
+              )}
             </div>
           </div>
           <Collapse in={Boolean(show)}>
@@ -263,10 +255,20 @@ export default class WorkflowTaskItem extends Component {
                       }}
                     >
                       <i
-                        style={{ marginLeft: '0px' }}
-                        className="fa fa-clipboard"
+                        style={{ marginLeft: 0 }}
+                        className="fa fa-copy"
                         aria-hidden="true"
                       />
+                    </Button>
+                    <Button
+                      variant="outline-secondary"
+                      style={{ width: '3em' }}
+                      title="Open parameters dialog"
+                      onClick={() =>
+                        this.props.showWorkflowParametersDialog(null, true)
+                      }
+                    >
+                      <i aria-hidden="true" className="fa fa-sliders-h" />
                     </Button>
                   </div>
                   {this.getResult(state)}

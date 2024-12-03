@@ -6,6 +6,8 @@ import queueGUI from './queueGUI';
 import sampleGrid from './sampleGrid';
 import sampleChanger from './sampleChanger';
 import sampleChangerMaintenance from './sampleChangerMaintenance';
+import harvester from './harvester';
+import harvesterMaintenance from './harvesterMaintenance';
 import taskForm from './taskForm';
 import sampleview from './sampleview';
 import general from './general';
@@ -17,6 +19,7 @@ import shapes from './shapes';
 import workflow from './workflow';
 import taskResult from './taskResult';
 import uiproperties from './uiproperties';
+import waitDialog from './waitDialog';
 
 const mxcubeReducer = combineReducers({
   login,
@@ -25,6 +28,8 @@ const mxcubeReducer = combineReducers({
   sampleGrid,
   sampleChanger,
   sampleChangerMaintenance,
+  harvester,
+  harvesterMaintenance,
   taskForm,
   sampleview,
   logger,
@@ -37,6 +42,7 @@ const mxcubeReducer = combineReducers({
   workflow,
   taskResult,
   form: formReducer,
+  waitDialog,
 });
 
 const rootReducer = (state, action) => {

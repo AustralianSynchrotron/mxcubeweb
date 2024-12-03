@@ -1,191 +1,78 @@
-/* eslint-disable jsx-a11y/control-has-associated-label */
 import React from 'react';
-import cx from 'classnames';
-import { Button, Popover } from 'react-bootstrap';
-import { MOTOR_STATE } from '../../constants';
-import MotorInput from './MotorInput';
-import './motor.css';
+import { useDispatch, useSelector } from 'react-redux';
+import { Button } from 'react-bootstrap';
 
-// eslint-disable-next-line react/no-unsafe
-export default class OneAxisTranslationControl extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { edited: false };
-    this.handleKey = this.handleKey.bind(this);
-    this.stepChange = this.stepChange.bind(this);
-  }
+import BaseMotorInput from './BaseMotorInput';
+import { HW_STATE, QUEUE_RUNNING } from '../../constants';
+import { setAttribute } from '../../actions/beamline';
+import styles from './OneAxisTranslationControl.module.css';
 
-  /* eslint-enable react/no-set-state */
-  UNSAFE_componentWillReceiveProps(nextProps) {
-    if (nextProps.value && nextProps.value !== this.props.value) {
-      this.motorValue.value = nextProps.value.toFixed(this.props.decimalPoints);
-      this.motorValue.defaultValue = nextProps.value.toFixed(
-        this.props.decimalPoints,
-      );
-      this.setState({ edited: false });
-    }
-  }
+function OneAxisTranslationControl(props) {
+  const { attribute, step, precision } = props.motorProps;
+  const dispatch = useDispatch();
 
-  handleKey(e) {
-    e.preventDefault();
-    e.stopPropagation();
+  const motor = useSelector(
+    (state) => state.beamline.hardwareObjects[attribute],
+  );
 
-    this.setState({ edited: true });
-    if (this.props.value) {
-      if (
-        [13, 38, 40].includes(e.keyCode) &&
-        this.props.state === MOTOR_STATE.READY
-      ) {
-        this.setState({ edited: false });
-        this.props.save(e.target.name, e.target.valueAsNumber);
-        this.motorValue.value = this.props.value.toFixed(
-          this.props.decimalPoints,
-        );
-      } else if (
-        this.props.state === MOTOR_STATE.BUSY ||
-        this.props.state === MOTOR_STATE.MOVING
-      ) {
-        this.setState({ edited: false });
-        this.motorValue.value = this.props.value.toFixed(
-          this.props.decimalPoints,
-        );
-      }
-    }
-  }
-  /* eslint-enable react/no-set-state */
+  const motorsDisabled = useSelector(
+    (state) =>
+      state.beamline.motorInputDisable ||
+      state.queue.queueStatus === QUEUE_RUNNING,
+  );
 
-  stepChange(name, step, operator) {
-    const { value } = this.props;
-    const newValue = value + step * operator;
-    this.props.save(name, newValue);
-  }
+  const { value, state, limits } = motor;
+  const disabled = motorsDisabled || state !== HW_STATE.READY;
 
-  renderMotorSettings() {
-    return (
-      <Popover title={<b>Sample alignment motors</b>}>
-        <div>
-          <MotorInput
-            save={this.props.save}
-            value={this.props.motors.sample_vertical.position}
-            saveStep={this.props.saveStep}
-            step={this.props.steps.sample_verticalStep}
-            motorName="sample_vertical"
-            label="Vertical"
-            suffix="mm"
-            decimalPoints="3"
-            state={this.props.motors.sample_vertical.state}
-            stop={this.props.stop}
-            disabled={this.props.motorsDisabled}
-            inplace
-          />
-          <MotorInput
-            save={this.props.save}
-            value={this.props.motors.sample_horizontal.position}
-            saveStep={this.props.saveStep}
-            step={this.props.steps.sample_horizontalStep}
-            motorName="sample_horizontal"
-            label="Horizontal"
-            suffix="mm"
-            decimalPoints="3"
-            state={this.props.motors.sample_horizontal.state}
-            stop={this.props.stop}
-            disabled={this.props.motorsDisabled}
-            inplace
-          />
-        </div>
-      </Popover>
-    );
-  }
+  return (
+    <div className={styles.root}>
+      <Button
+        className={styles.btn}
+        variant="outline-secondary"
+        disabled={disabled}
+        onClick={() => dispatch(setAttribute(attribute, value - 10 * step))}
+      >
+        <i className={`${styles.btnIcon} fas fa-angle-double-left`} />
+      </Button>
+      <Button
+        className={styles.btn}
+        variant="outline-secondary"
+        disabled={disabled}
+        onClick={() => dispatch(setAttribute(attribute, value - step))}
+      >
+        <i className={`${styles.btnIcon} fas fa-angle-left`} />
+      </Button>
 
-  render() {
-    const { value, motorName, step, decimalPoints } = this.props;
-    const valueCropped = value ? value.toFixed(decimalPoints) : '';
+      <BaseMotorInput
+        className={styles.input}
+        value={value}
+        state={state}
+        precision={precision}
+        step={step}
+        min={limits[0]}
+        max={limits[1]}
+        disabled={disabled}
+        onChange={(val) => dispatch(setAttribute(attribute, val))}
+      />
 
-    const inputCSS = cx('form-control rw-input', {
-      'input-bg-edited': this.state.edited,
-      'input-bg-moving':
-        this.props.state === MOTOR_STATE.BUSY ||
-        this.props.state === MOTOR_STATE.MOVING,
-      'input-bg-ready': this.props.state === MOTOR_STATE.READY,
-      'input-bg-fault':
-        this.props.state === MOTOR_STATE.FAULT ||
-        this.props.state === MOTOR_STATE.OFF ||
-        this.props.state === MOTOR_STATE.ALARM ||
-        this.props.state === MOTOR_STATE.OFFLINE ||
-        this.props.state === MOTOR_STATE.INVALID,
-      'input-bg-onlimit':
-        this.props.state === MOTOR_STATE.LOWLIMIT ||
-        this.props.state === MOTOR_STATE.HIGHLIMIT,
-    });
-
-    return (
-      <div className="arrow-control">
-        <Button
-          variant="outline-secondary"
-          style={{ marginRight: '2px' }}
-          className="arrow-small arrow-left"
-          disabled={
-            this.props.state !== MOTOR_STATE.READY || this.props.disabled
-          }
-          onClick={() => this.stepChange(motorName, 10 * step, -1)}
-        >
-          <i className="fas fa-angle-double-left" />
-        </Button>
-        <Button
-          variant="outline-secondary"
-          className="arrow-small arrow-left"
-          disabled={
-            this.props.state !== MOTOR_STATE.READY || this.props.disabled
-          }
-          onClick={() => this.stepChange(motorName, step, -1)}
-        >
-          <i className="fas fa-angle-left" />
-        </Button>
-        <input
-          style={{
-            width: `${Number.parseFloat(decimalPoints) + 2}em`,
-            height: '2.1em',
-            display: 'inline-block',
-            marginLeft: '5px',
-            marginRight: '5px',
-          }}
-          ref={(ref) => {
-            this.motorValue = ref;
-          }}
-          className={inputCSS}
-          onKeyUp={this.handleKey}
-          type="number"
-          max={this.props.max}
-          min={this.props.min}
-          step={step}
-          defaultValue={valueCropped}
-          name={motorName}
-          disabled={
-            this.props.state !== MOTOR_STATE.READY || this.props.disabled
-          }
-        />
-        <Button
-          variant="outline-secondary"
-          className="arrow-small arrow-right"
-          disabled={
-            this.props.state !== MOTOR_STATE.READY || this.props.disabled
-          }
-          onClick={() => this.stepChange(motorName, step, 1)}
-        >
-          <i className="fas fa-angle-right" />
-        </Button>
-        <Button
-          variant="outline-secondary"
-          style={{ marginLeft: '2px' }}
-          className="arrow-small arrow-right"
-          disabled={
-            this.props.state !== MOTOR_STATE.READY || this.props.disabled
-          }
-          onClick={() => this.stepChange(motorName, 10 * step, 1)}
-        >
-          <i className="fas fa-angle-double-right" />
-        </Button>
-      </div>
-    );
-  }
+      <Button
+        className={styles.btn}
+        variant="outline-secondary"
+        disabled={disabled}
+        onClick={() => dispatch(setAttribute(attribute, value + step))}
+      >
+        <i className={`${styles.btnIcon} fas fa-angle-right`} />
+      </Button>
+      <Button
+        className={styles.btn}
+        variant="outline-secondary"
+        disabled={disabled}
+        onClick={() => dispatch(setAttribute(attribute, value + 10 * step))}
+      >
+        <i className={`${styles.btnIcon} fas fa-angle-double-right`} />
+      </Button>
+    </div>
+  );
 }
+
+export default OneAxisTranslationControl;

@@ -1,16 +1,13 @@
 # -*- coding: utf-8 -*-
 import gevent
-
 from flask import (
     Blueprint,
-    jsonify,
     Response,
-    request,
-    make_response,
     copy_current_request_context,
+    jsonify,
+    make_response,
+    request,
 )
-
-from flask_socketio import join_room, leave_room
 from flask_login import current_user
 
 DISCONNECT_HANDLED = True
@@ -37,16 +34,18 @@ def init_route(app, server, url_prefix):  # noqa: C901
                         "Timeout expired, you have control",
                     )
 
-        data = request.get_json()
-
         # Is someone already asking for control
         for observer in app.usermanager.get_observers():
             if observer.requests_control and observer.username != current_user.username:
                 msg = "Another user is already asking for control"
                 return make_response(msg, 409)
 
-        current_user.requests_control = data["control"]
-        server.user_datastore.commit()
+        data = request.get_json()
+        current_user.requests_control = True
+        current_user.requests_control_msg = data["message"]
+        app.usermanager.update_user(current_user)
+
+        server.emit("observersChanged", namespace="/hwr")
 
         gevent.spawn(
             handle_timeout_gives_control,
@@ -54,7 +53,17 @@ def init_route(app, server, url_prefix):  # noqa: C901
             timeout=10,
         )
 
-        app.usermanager.emit_observers_changed()
+        return make_response("", 200)
+
+    @bp.route("/cancel_request", methods=["POST"])
+    @server.restrict
+    def cancel_request():
+        """Cancel request for control"""
+        current_user.requests_control = False
+        current_user.requests_control_msg = None
+        app.usermanager.update_user(current_user)
+
+        server.emit("observersChanged", namespace="/hwr")
 
         return make_response("", 200)
 
@@ -65,11 +74,6 @@ def init_route(app, server, url_prefix):  # noqa: C901
         # Already master do nothing
         if app.usermanager.is_operator():
             return make_response("", 200)
-
-        # Not inhouse user so not allowed to take control by force,
-        # return error code
-        if not current_user.isstaff:
-            return make_response("", 409)
 
         toggle_operator(current_user.username, "You were given control")
 
@@ -91,7 +95,11 @@ def init_route(app, server, url_prefix):  # noqa: C901
         name = request.get_json().get("name")
         current_user.nickname = name
         app.usermanager.update_user(current_user)
-        app.usermanager.emit_observers_changed()
+
+        server.emit(
+            "userChanged", room=current_user.socketio_session_id, namespace="/hwr"
+        )
+        server.emit("observersChanged", namespace="/hwr")
 
         return make_response("", 200)
 
@@ -108,33 +116,18 @@ def init_route(app, server, url_prefix):  # noqa: C901
         newop = app.usermanager.set_operator(username)
 
         oldop.requests_control = False
-        newop.requests_control = False
+        oldop.requests_control_msg = None
         app.usermanager.update_user(oldop)
+
+        newop.requests_control = False
+        newop.requests_control_msg = None
         app.usermanager.update_user(newop)
 
-        join_room(
-            "observers",
-            sid=oldop.socketio_session_id,
-            namespace="/ui_state",
-        )
-        leave_room(
-            "observers",
-            sid=newop.socketio_session_id,
-            namespace="/ui_state",
-        )
-
-        app.usermanager.emit_observers_changed(message)
-
-    def remain_observer(user, message):
-        observer = user.todict()
-        observer["message"] = message
-
+        server.emit("userChanged", room=oldop.socketio_session_id, namespace="/hwr")
         server.emit(
-            "setObserver",
-            observer,
-            room=user.socketio_session_id,
-            namespace="/hwr",
+            "userChanged", message, room=newop.socketio_session_id, namespace="/hwr"
         )
+        server.emit("observersChanged", namespace="/hwr")
 
     @bp.route("/", methods=["GET"])
     @server.restrict
@@ -186,14 +179,21 @@ def init_route(app, server, url_prefix):  # noqa: C901
         data = request.get_json()
         new_op = observer_requesting_control()
 
-        # Request was denied
-        if not data["giveControl"]:
-            remain_observer(new_op, data["message"])
-        else:
+        if data["giveControl"]:
+            # Request approved
             toggle_operator(new_op.username, data["message"])
-
-        new_op.requests_control = False
-        app.usermanager.update_user(new_op)
+        else:
+            # Request denied
+            new_op.requests_control = False
+            new_op.requests_control_msg = None
+            app.usermanager.update_user(new_op)
+            server.emit(
+                "userChanged",
+                data["message"],
+                room=new_op.socketio_session_id,
+                namespace="/hwr",
+            )
+            server.emit("observersChanged", namespace="/hwr")
 
         return make_response("", 200)
 
@@ -211,6 +211,12 @@ def init_route(app, server, url_prefix):  # noqa: C901
     @server.restrict
     def get_all_mesages():
         return jsonify({"messages": app.chat.get_all_messages()})
+
+    @bp.route("/chat/set_all_read", methods=["POST"])
+    @server.restrict
+    def set_all_messages_read():
+        app.chat.set_all_messages_read()
+        return Response(status=200)
 
     @server.flask_socketio.on("connect", namespace="/hwr")
     @server.ws_restrict

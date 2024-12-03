@@ -1,13 +1,9 @@
 import json
 import random
 
-# Python 2 and 3 compatibility
-try:
-    unicode
-except:
-    unicode = str
-
 from fixture import client
+from gevent.event import Event
+from mxcubecore import HardwareRepository as HWR
 
 
 def test_get_phase_list(client):
@@ -84,7 +80,7 @@ def test_get_aperture(client):
     resp = client.get("/mxcube/api/v0.1/diffractometer/aperture")
     data = json.loads(resp.data)
 
-    assert isinstance(data["currentAperture"], int)
+    assert isinstance(data["currentAperture"], str)
     assert isinstance(data["apertureList"], list)
 
 
@@ -102,7 +98,10 @@ def test_set_aperture(client):
 
     original_aperture = data["currentAperture"]
 
-    ap = data["apertureList"][random.randint(0, len(data["apertureList"]) - 1)]
+    ap = data["apertureList"][0]
+
+    # make sure we are testing a change of aperture
+    assert ap != original_aperture
 
     resp = client.put(
         "/mxcube/api/v0.1/diffractometer/aperture",
@@ -113,11 +112,19 @@ def test_set_aperture(client):
     resp = client.get("/mxcube/api/v0.1/diffractometer/aperture")
     actual_aperture = json.loads(resp.data)["currentAperture"]
 
+    aperture_value_changed = Event()
+    # listen for 'valueChanged' signal
+    HWR.beamline.beam.aperture.connect(
+        "valueChanged", lambda *_, **__: aperture_value_changed.set()
+    )
+
     resp = client.put(
         "/mxcube/api/v0.1/diffractometer/aperture",
         data=json.dumps({"diameter": original_aperture}),
         content_type="application/json",
     )
+    # wait until aperture changes the value
+    aperture_value_changed.wait()
 
     resp = client.get("/mxcube/api/v0.1/diffractometer/aperture")
     actual_original_aperture = json.loads(resp.data)["currentAperture"]

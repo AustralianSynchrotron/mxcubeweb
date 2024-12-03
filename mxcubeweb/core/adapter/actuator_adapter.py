@@ -1,11 +1,10 @@
 from mxcubeweb.core.adapter.adapter_base import ActuatorAdapterBase
+from mxcubeweb.core.models.adaptermodels import (
+    FloatValueModel,
+    HOActuatorValueChangeModel,
+)
 from mxcubeweb.core.util.adapterutils import export
 from mxcubeweb.core.util.networkutils import RateLimited
-
-from mxcubeweb.core.models.adaptermodels import (
-    HOActuatorValueChangeModel,
-    FloatValueModel,
-)
 
 
 class ActuatorAdapter(ActuatorAdapterBase):
@@ -14,12 +13,12 @@ class ActuatorAdapter(ActuatorAdapterBase):
     information on longer running processes.
     """
 
-    def __init__(self, ho, *args, **kwargs):
+    def __init__(self, ho, *args):
         """
         Args:
             (object): Hardware object.
         """
-        super(ActuatorAdapter, self).__init__(ho, *args, **kwargs)
+        super(ActuatorAdapter, self).__init__(ho, *args)
         self._event_rate = 4
 
         @RateLimited(self._event_rate)
@@ -49,10 +48,7 @@ class ActuatorAdapter(ActuatorAdapterBase):
             RuntimeError: Timeout while setting the value.
             StopItteration: When a value change was interrupted (abort/cancel).
         """
-        try:
-            self._ho.set_value(float(value.value))
-        except Exception:
-            raise
+        self._ho.set_value(float(value.value))
 
     @export
     def _get_value(self) -> FloatValueModel:

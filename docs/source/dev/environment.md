@@ -49,16 +49,17 @@ It can be changed on the command line with `--name <env-name>`.
 
 ```
 cd mxcubeweb
-conda env create -f conda-environment.yml
+conda env create --file conda-environment.yml
 # or (to pass a different name)
-conda env create -f conda-environment.yml --name another_name
+conda env create --file conda-environment.yml --name another_name
 ```
 
-To choose a specific Python version when creating the conda environment,
-for example Python 3.9, one can use a command such as the following:
+To switch to a specific Python version inside the conda environment,
+one can additionally use a command such as the following after environment creation,
+for example for Python 3.9:
 
-```none
-conda env create -f conda-environment.yml python=3.9
+```
+conda install --name mxcubeweb 'python=3.9'
 ```
 
 ### 4. Activate the environment
@@ -85,16 +86,10 @@ pnpm --prefix ui build
 ### 7. Running the application (server)
 
 ```
-# Start redis-server (if not already running)
-# Open a new terminal:
-conda activate mxcubeweb
-redis-server
-
-# In the previous terminal:
 # The paths passed below need to be the absolute paths
-# to the HardwareObjectsMockup.xml and build directories
+# to the demo and build directories
 # (that is why there is an extra `$(pwd)` in the command).
-mxcubeweb-server -r $(pwd)/mxcubeweb/test/HardwareObjectsMockup.xml/ --static-folder $(pwd)/mxcubeweb/ui/build/ -L debug
+mxcubeweb-server -r $(pwd)/mxcubeweb/demo/ --static-folder $(pwd)/mxcubeweb/ui/build/ -L debug
 ```
 
 _Running the above should give something similar to_
@@ -139,10 +134,6 @@ python -m pip install --editable .
 The "editable" installations make it possible to
 add break points directly in the "checked out code".
 
-Before running any test, make sure that the local _Redis_ server is running.
-For example, with the `mxcubeweb` _conda_ environment activated in a terminal,
-run the `redis-server` command.
-
 #### 9.1. Running tests
 
 The tests are located in the test folder and are executed with `pytest`
@@ -159,32 +150,32 @@ _The output should look something like the following:_
 
 #### 9.2. Running the front-end development server
 
-The front end development server, webpack development server,
-listens for changes on the filesystem and builds (re-builds) the UI when a change is made.
+The front-end development server, listens for changes on the filesystem and builds (re-builds) the UI when a change is made.
 This makes it very easy and fast to see how a change affects the UI and makes debugging much easier.
-The development server listens on port **3000**
+The development server listens on port **5173**
 
 ```
 # The front-end needs the backend to run,
 # so before starting the development server, open a new terminal and run (as in step 7):
 
 conda activate mxcubeweb
-mxcubeweb-server -r $(pwd)/mxcubeweb/test/HardwareObjectsMockup.xml/ --static-folder $(pwd)/mxcubeweb/ui/build/ --log-level debug
+mxcubeweb-server -r $(pwd)/mxcubeweb/demo/ --static-folder $(pwd)/mxcubeweb/ui/build/ --log-level debug
 
-# Enter the `ui` folder and issue:
-npm run start
+# In another terminal, from the root directory of `mxcubeweb`
+pnpm --prefix ui start
 ```
 
-The above will automatically open a browser with the URL: <http://localhost:3000>
+The above will automatically open a browser with the URL: <http://localhost:5173>
 
 #### 9.3. Running the end to end (e2e) tests
 
+Keep both the backend and front-end servers running then run the following command in a third terminal, from the root directory of the project:
+
 ```
-# Keep the backend running, and issue in the mxcubeweb root:
-npm run --prefix ./ui e2e
+pnpm --prefix ui e2e
 ```
 
-_This should give a result looking something like:_
+The result should look like this:
 ![cypress](assets/cypress.png)
 
 #### 9.4. Ready to develop

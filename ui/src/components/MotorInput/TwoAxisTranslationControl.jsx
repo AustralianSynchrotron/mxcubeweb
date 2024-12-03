@@ -1,137 +1,127 @@
 import React from 'react';
 import { Button, OverlayTrigger, Popover } from 'react-bootstrap';
-import { MOTOR_STATE } from '../../constants';
+import { useDispatch, useSelector } from 'react-redux';
+
 import MotorInput from './MotorInput';
-import './motor.css';
+import { HW_STATE, QUEUE_RUNNING } from '../../constants';
+import { setAttribute } from '../../actions/beamline';
+import styles from './TwoAxisTranslationControl.module.css';
 
-export default class TwoAxisTranslationControl extends React.Component {
-  constructor(props) {
-    super(props);
-    this.stepChange = this.stepChange.bind(this);
-  }
+function TwoAxisTranslationControl(props) {
+  const { verticalMotorProps, horizontalMotorProps } = props;
+  const dispatch = useDispatch();
 
-  stepChange(name, step, operator) {
-    const { value } = this.props.motors[name];
-    const newValue = value + step * operator;
-    this.props.save(this.props.motors[name].attribute, newValue);
-  }
+  const verticalMotor = useSelector(
+    (state) => state.beamline.hardwareObjects[verticalMotorProps.attribute],
+  );
+  const horizontalMotor = useSelector(
+    (state) => state.beamline.hardwareObjects[horizontalMotorProps.attribute],
+  );
 
-  renderMotorSettings() {
-    return (
-      <Popover style={{ maxWidth: 'fit-content' }} title="">
-        <Popover.Header as="h3">Sample alignment motors</Popover.Header>
-        <Popover.Body>
-          <MotorInput
-            save={this.props.save}
-            value={this.props.motors.sample_vertical.value}
-            saveStep={this.props.saveStep}
-            step={this.props.motors.sample_vertical.step}
-            motorName={this.props.motors.sample_vertical.attribute}
-            label={this.props.motors.sample_vertical.label}
-            suffix={this.props.motors.sample_vertical.suffix}
-            decimalPoints={this.props.motors.sample_vertical.precision}
-            state={this.props.motors.sample_vertical.state}
-            stop={this.props.stop}
-            disabled={this.props.motorsDisabled}
-            inplace
-          />
-          <MotorInput
-            save={this.props.save}
-            value={this.props.motors.sample_horizontal.value}
-            saveStep={this.props.saveStep}
-            step={this.props.motors.sample_horizontal.step}
-            motorName={this.props.motors.sample_horizontal.attribute}
-            label={this.props.motors.sample_horizontal.label}
-            suffix={this.props.motors.sample_horizontal.suffix}
-            decimalPoints={this.props.motors.sample_horizontal.precision}
-            state={this.props.motors.sample_horizontal.state}
-            stop={this.props.stop}
-            disabled={this.props.motorsDisabled}
-            inplace
-          />
-        </Popover.Body>
-      </Popover>
-    );
-  }
+  const motorsDisabled = useSelector(
+    (state) =>
+      state.beamline.motorInputDisable ||
+      state.queue.queueStatus === QUEUE_RUNNING,
+  );
 
-  render() {
-    const { sample_verticalStep, sample_horizontalStep } = this.props.steps;
+  return (
+    <div className={styles.root}>
+      <Button
+        className={styles.btn}
+        aria-label="Move up"
+        variant="outline-secondary"
+        onClick={() =>
+          dispatch(
+            setAttribute(
+              verticalMotorProps.attribute,
+              verticalMotor.value + verticalMotorProps.step,
+            ),
+          )
+        }
+        disabled={motorsDisabled || verticalMotor.state !== HW_STATE.READY}
+      >
+        <i className={`${styles.btnIcon} fas fa-angle-up`} />
+      </Button>
+      <Button
+        className={styles.btn}
+        aria-label="Move left"
+        variant="outline-secondary"
+        disabled={motorsDisabled || horizontalMotor.state !== HW_STATE.READY}
+        onClick={() =>
+          dispatch(
+            setAttribute(
+              horizontalMotorProps.attribute,
+              horizontalMotor.value - horizontalMotorProps.step,
+            ),
+          )
+        }
+      >
+        <i className={`${styles.btnIcon} fas fa-angle-left`} />
+      </Button>
 
-    return (
-      <div className="arrow-control">
-        <p className="motor-name">Sample alignment:</p>
-        <div style={{ marginBottom: '1em' }} />
+      <OverlayTrigger
+        trigger="click"
+        rootClose
+        placement="right"
+        overlay={
+          <Popover>
+            <Popover.Header as="h3">Sample alignment motors</Popover.Header>
+            <Popover.Body>
+              <MotorInput
+                role="sample_vertical"
+                idPrefix="TwoAxisTranslationControl"
+              />
+              <MotorInput
+                role="sample_horizontal"
+                idPrefix="TwoAxisTranslationControl"
+              />
+            </Popover.Body>
+          </Popover>
+        }
+      >
         <Button
-          size="sm"
+          className={styles.btn}
+          aria-label="Show sample alignment motors"
           variant="outline-secondary"
-          onClick={() =>
-            this.stepChange('sample_vertical', sample_verticalStep, 1)
-          }
-          disabled={
-            this.props.motors.sample_vertical.state !== MOTOR_STATE.READY ||
-            this.props.motorsDisabled
-          }
-          className="arrow arrow-up"
         >
-          <i className="fas fa-angle-up" />
+          <i className={`${styles.btnIcon} fas fa-cog`} />
         </Button>
-        <Button
-          size="sm"
-          variant="outline-secondary"
-          className="arrow arrow-left"
-          disabled={
-            this.props.motors.sample_horizontal.state !== MOTOR_STATE.READY ||
-            this.props.motorsDisabled
-          }
-          onClick={() =>
-            this.stepChange('sample_horizontal', sample_horizontalStep, -1)
-          }
-        >
-          <i className="fas fa-angle-left" />
-        </Button>
-        <OverlayTrigger
-          trigger="click"
-          rootClose
-          placement="right"
-          overlay={this.renderMotorSettings()}
-        >
-          <Button
-            size="sm"
-            variant="outline-secondary"
-            className="arrow arrow-settings"
-          >
-            <i className="fas fa-cog" />
-          </Button>
-        </OverlayTrigger>
-        <Button
-          size="sm"
-          variant="outline-secondary"
-          className="arrow arrow-right"
-          disabled={
-            this.props.motors.sample_horizontal.state !== MOTOR_STATE.READY ||
-            this.props.motorsDisabled
-          }
-          onClick={() =>
-            this.stepChange('sample_horizontal', sample_horizontalStep, 1)
-          }
-        >
-          <i className="fas fa-angle-right" />
-        </Button>
-        <Button
-          size="sm"
-          variant="outline-secondary"
-          className="arrow arrow-down"
-          disabled={
-            this.props.motors.sample_vertical.state !== MOTOR_STATE.READY ||
-            this.props.motorsDisabled
-          }
-          onClick={() =>
-            this.stepChange('sample_vertical', sample_verticalStep, -1)
-          }
-        >
-          <i className="fas fa-angle-down" />
-        </Button>
-      </div>
-    );
-  }
+      </OverlayTrigger>
+
+      <Button
+        className={styles.btn}
+        aria-label="Move right"
+        variant="outline-secondary"
+        disabled={motorsDisabled || horizontalMotor.state !== HW_STATE.READY}
+        onClick={() =>
+          dispatch(
+            setAttribute(
+              horizontalMotorProps.attribute,
+              horizontalMotor.value + horizontalMotorProps.step,
+            ),
+          )
+        }
+      >
+        <i className={`${styles.btnIcon} fas fa-angle-right`} />
+      </Button>
+      <Button
+        className={styles.btn}
+        aria-label="Move down"
+        variant="outline-secondary"
+        disabled={motorsDisabled || verticalMotor.state !== HW_STATE.READY}
+        onClick={() =>
+          dispatch(
+            setAttribute(
+              verticalMotorProps.attribute,
+              verticalMotor.value - verticalMotorProps.step,
+            ),
+          )
+        }
+      >
+        <i className={`${styles.btnIcon} fas fa-angle-down`} />
+      </Button>
+    </div>
+  );
 }
+
+export default TwoAxisTranslationControl;

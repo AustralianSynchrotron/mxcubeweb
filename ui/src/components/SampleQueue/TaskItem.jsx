@@ -6,20 +6,14 @@
 /* eslint-disable sonarjs/no-duplicate-string */
 import React, { Component } from 'react';
 import PropTypes from 'prop-types';
-import {
-  ProgressBar,
-  Button,
-  Collapse,
-  Table,
-  OverlayTrigger,
-  Tooltip,
-} from 'react-bootstrap';
+import { ProgressBar, Button, Collapse, Table } from 'react-bootstrap';
 import {
   TASK_UNCOLLECTED,
   TASK_COLLECTED,
   TASK_COLLECT_FAILED,
   TASK_RUNNING,
 } from '../../constants';
+import TooltipTrigger from '../TooltipTrigger';
 
 export default class TaskItem extends Component {
   static propTypes = {
@@ -153,21 +147,20 @@ export default class TaskItem extends Component {
     const pathEndPart = path.slice(-40);
 
     return (
-      <OverlayTrigger
-        placement="bottom"
-        rootClose
-        overlay={
-          <Tooltip id="wedge-popover">
+      <TooltipTrigger
+        id="wedge-path-tooltip"
+        tooltipContent={
+          <>
             {path}
             {value}
-          </Tooltip>
+          </>
         }
       >
         <a style={{ flexGrow: 1 }}>
           .../{pathEndPart.slice(pathEndPart.indexOf('/') + 1)}
           {value}
         </a>
-      </OverlayTrigger>
+      </TooltipTrigger>
     );
   }
 
@@ -175,16 +168,16 @@ export default class TaskItem extends Component {
     const { parameters } = wedge;
     return (
       <tr>
-        {parameters.osc_start !== null ? (
+        {parameters.osc_start !== null && (
           <td>
             <a>{parameters.osc_start.toFixed(2)}</a>
           </td>
-        ) : null}
-        {parameters.osc_range !== null ? (
+        )}
+        {parameters.osc_range !== null && (
           <td>
             <a>{parameters.osc_range.toFixed(2)}</a>
           </td>
-        ) : null}
+        )}
         <td>
           <a>{parameters.exp_time.toFixed(6)}</a>
         </td>
@@ -200,16 +193,16 @@ export default class TaskItem extends Component {
         <td>
           <a>{parameters.energy.toFixed(4)}</a>
         </td>
-        {parameters.kappa_phi !== null ? (
+        {parameters.kappa_phi !== null && (
           <td>
             <a>{parameters.kappa_phi.toFixed(2)}</a>
           </td>
-        ) : null}
-        {parameters.kappa !== null ? (
+        )}
+        {parameters.kappa !== null && (
           <td>
             <a>{parameters.kappa.toFixed(2)}</a>
           </td>
-        ) : null}
+        )}
       </tr>
     );
   }
@@ -242,10 +235,10 @@ export default class TaskItem extends Component {
         <ProgressBar
           variant={pbarBsStyle}
           striped
-          style={{ marginBottom: '0px', height: '18px' }}
+          style={{ marginBottom: 0, height: '18px' }}
           min={0}
           max={1}
-          active={this.props.progress < 1}
+          animated={this.props.progress < 1}
           label={`${(this.props.progress * 100).toPrecision(3)} %`}
           now={this.props.progress}
         />
@@ -307,16 +300,16 @@ export default class TaskItem extends Component {
               <b>
                 <span className="node-name" style={{ display: 'flex' }}>
                   {this.pointIDString(wedges)} {data.label}
-                  {state === TASK_RUNNING ? this.progressBar() : null}
+                  {state === TASK_RUNNING && this.progressBar()}
                 </span>
               </b>
-              {state === TASK_UNCOLLECTED ? (
+              {state === TASK_UNCOLLECTED && (
                 <i
                   className="fas fa-times"
                   onClick={this.deleteTask}
                   style={delTaskCSS}
                 />
-              ) : null}
+              )}
             </div>
           </div>
           <Collapse in={Boolean(show)}>
@@ -354,8 +347,8 @@ export default class TaskItem extends Component {
                           }}
                         >
                           <i
-                            style={{ marginLeft: '0px' }}
-                            className="fa fa-clipboard"
+                            style={{ marginLeft: 0 }}
+                            className="fa fa-copy"
                             aria-hidden="true"
                           />
                         </Button>
@@ -366,28 +359,28 @@ export default class TaskItem extends Component {
                       bordered
                       hover
                       onClick={this.showForm}
-                      style={{ fontSize: 'smaller', marginBottom: '0px' }}
+                      style={{ fontSize: 'smaller', marginBottom: 0 }}
                       className="task-parameters-table"
                     >
                       <thead>
                         <tr>
-                          {wedge.parameters.osc_start !== null ? (
+                          {wedge.parameters.osc_start !== null && (
                             <th>Start &deg; </th>
-                          ) : null}
-                          {wedge.parameters.osc_range !== null ? (
+                          )}
+                          {wedge.parameters.osc_range !== null && (
                             <th>Osc. &deg; </th>
-                          ) : null}
+                          )}
                           <th>t (s)</th>
                           <th># Img</th>
                           <th>T (%)</th>
                           <th>Res. (&Aring;)</th>
                           <th>E (keV)</th>
-                          {wedge.parameters.kappa_phi !== null ? (
+                          {wedge.parameters.kappa_phi !== null && (
                             <th>&phi; &deg;</th>
-                          ) : null}
-                          {wedge.parameters.kappa !== null ? (
+                          )}
+                          {wedge.parameters.kappa !== null && (
                             <th>&kappa; &deg;</th>
-                          ) : null}
+                          )}
                         </tr>
                       </thead>
                       <tbody>{this.wedgeParameters(wedge)}</tbody>

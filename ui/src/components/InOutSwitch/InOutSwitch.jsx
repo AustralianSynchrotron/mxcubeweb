@@ -11,6 +11,7 @@ import styles from './inOutStyle.module.css';
 export default function InOutSwitch(props) {
   const {
     value,
+    state,
     onSave,
     pkey,
     offText,
@@ -49,7 +50,7 @@ export default function InOutSwitch(props) {
           overlay={optionsOverlay}
         >
           <div>
-            <Badge bg="secondary" className={styles.inOutLabel}>
+            <Badge className={styles.inOutLabel} bg="secondary">
               {labelText}
               <i className="fas fa-cog ms-2" />
             </Badge>
@@ -89,6 +90,7 @@ export default function InOutSwitch(props) {
       break;
     }
     case offValue:
+    case 'DISABLED':
     case 'CLOSED': {
       msgBgStyle = 'danger';
       btn = (
@@ -102,7 +104,6 @@ export default function InOutSwitch(props) {
       );
       break;
     }
-    case 'DISABLED':
     case 'UNUSABLE': {
       msgBgStyle = 'warning';
       btn = (
@@ -136,14 +137,14 @@ export default function InOutSwitch(props) {
         trigger="click"
         placement={overlayPlacement || 'bottom'}
         overlay={
-          <Popover style={{ padding: '0.5em' }} id={`${labelText} popover`}>
+          <Popover style={{ padding: '0.5em' }} id={`${labelText}_popover`}>
             {btn}
           </Popover>
         }
       >
         {!isBtnLabel ? (
           <div title={value}>
-            <Badge bg={msgBgStyle} className={styles.msgLabelStyle}>
+            <Badge className={styles.msgLabelStyle} bg={msgBgStyle}>
               {value}
             </Badge>
           </div>
@@ -151,7 +152,7 @@ export default function InOutSwitch(props) {
           <Button variant="outline-secondary" className={styles.switchBtn}>
             {labelText}{' '}
             <Badge className={styles.switchBdg} bg={msgBgStyle}>
-              {value}
+              {state}
             </Badge>
           </Button>
         )}

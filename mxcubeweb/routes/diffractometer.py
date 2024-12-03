@@ -1,7 +1,11 @@
 import json
 
-from flask import Blueprint, Response, jsonify, request
-
+from flask import (
+    Blueprint,
+    Response,
+    jsonify,
+    request,
+)
 from mxcubecore import HardwareRepository as HWR
 
 
@@ -70,15 +74,6 @@ def init_route(app, server, url_prefix):
         resp = jsonify({"md_in_plate_mode": md_in_plate_mode})
         resp.status_code = 200
         return resp
-
-    # @bp.route("/movables/state", methods=["GET"])
-    # @server.restrict
-    # def get_movables_state():
-    #     ret = utils.get_centring_motors_info()
-    #     ret.update(utils.get_light_state_and_intensity())
-    #     resp = jsonify(ret)
-    #     resp.status_code = 200
-    #     return resp
 
     @bp.route("/aperture", methods=["PUT"])
     @server.require_control

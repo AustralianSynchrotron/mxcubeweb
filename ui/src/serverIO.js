@@ -7,8 +7,8 @@ import {
   saveMotorPosition,
   updateMotorState,
   setBeamInfo,
-  startClickCentring,
-  updateShapes,
+  startClickCentringAction,
+  updateShapesAction,
   setPixelsPerMm,
   videoMessageOverlay,
   setCurrentPhase,
@@ -17,7 +17,6 @@ import {
   updateBeamlineHardwareObjectAction,
   updateBeamlineHardwareObjectValueAction,
   updateBeamlineHardwareObjectAttributeAction,
-  setMachInfo,
 } from './actions/beamline';
 import {
   setActionState,
@@ -35,10 +34,10 @@ import {
   setCurrentSample,
   addDiffractionPlanAction,
   setSampleAttribute,
-  fetchQueue,
+  getQueue,
 } from './actions/queue';
 import { collapseItem, showResumeQueueDialog } from './actions/queueGUI';
-import { setLoading, showConnectionLostDialog } from './actions/general';
+import { showConnectionLostDialog } from './actions/general';
 
 import {
   showWorkflowParametersDialog,
@@ -46,9 +45,9 @@ import {
   updateGphlWorkflowParametersDialog,
 } from './actions/workflow';
 
-import { incChatMessageCount, getRaState } from './actions/remoteAccess';
+import { getRaState, incChatMessageCount } from './actions/remoteAccess';
 
-import { forcedSignout, getLoginInfo } from './actions/login';
+import { signOut, getLoginInfo } from './actions/login';
 
 import {
   setSCState,
@@ -57,163 +56,115 @@ import {
   updateSCContents,
 } from './actions/sampleChanger';
 
+import {
+  setHarvesterState,
+  updateHarvesterContents,
+} from './actions/harvester';
+
 import { setEnergyScanResult } from './actions/taskResults';
 
 import { CLICK_CENTRING } from './constants';
-import { sendRefreshSession } from './api/login';
 import { store } from './store';
+import { hideWaitDialog, showWaitDialog } from './actions/waitDialog';
+
+const { dispatch } = store;
 
 class ServerIO {
   constructor() {
     this.hwrSocket = null;
     this.loggingSocket = null;
-    this.uiStateSocket = null;
-    this.hwrsid = null;
-    this.connected = false;
-    this.initialized = false;
-
-    this.uiStorage = {
-      setItem: (key, value) => {
-        this.uiStateSocket.emit('ui_state_set', [key, value]);
-      },
-      getItem: (key, cb) => {
-        this.uiStateSocket.emit('ui_state_get', key, (value) => {
-          cb(false, value);
-        });
-      },
-      removeItem: (key) => {
-        this.uiStateSocket.emit('ui_state_rm', key);
-      },
-      getAllKeys: (cb) => {
-        this.uiStateSocket.emit('ui_state_getkeys', null, (value) => {
-          cb(false, value);
-        });
-      },
-    };
   }
 
-  connectStateSocket(statePersistor) {
-    this.uiStateSocket = io.connect(
-      `//${document.domain}:${window.location.port}/ui_state`,
-    );
+  listen() {
+    this.disconnect(); // noop if `disconnect` is properly called on logout
 
-    this.uiStateSocket.on('state_update', (newState) => {
-      statePersistor.rehydrate(JSON.parse(newState));
-    });
+    this.connectHwr();
+    this.connectLogging();
   }
 
   disconnect() {
-    this.connected = false;
-    this.hwrSocket.close();
-    this.loggingSocket.close();
-    clearInterval(this.refreshInterval);
+    this.hwrSocket?.disconnect();
+    this.hwrSocket = null;
+
+    this.loggingSocket?.disconnect();
+    this.loggingSocket = null;
   }
 
-  connect() {
-    if (this.hwrSocket === null) {
-      this.hwrSocket = io.connect(
-        `//${document.domain}:${window.location.port}/hwr`,
-      );
-      this.hwrSocket.on('connect', () => {
-        console.log('hwrSocket connected!'); // eslint-disable-line no-console
-      });
-      this.loggingSocket = io.connect(
-        `//${document.domain}:${window.location.port}/logging`,
-      );
-      this.hwrSocket.on('connect', () => {
-        console.log('loggingSocket connected!'); // eslint-disable-line no-console
-      });
-    } else {
-      this.hwrSocket.connect();
-      this.loggingSocket.connect();
-    }
-  }
+  connectHwr() {
+    this.hwrSocket = io.connect(`/hwr`);
 
-  // eslint-disable-next-line sonarjs/cognitive-complexity
-  listen() {
-    if (this.initialized) {
-      return;
-    }
-
-    this.initialized = true;
-    this.dispatch = store.dispatch;
-
-    this.refreshInterval = setInterval(sendRefreshSession, 9000);
-
-    this.connect();
-
-    this.loggingSocket.on('log_record', (record) => {
-      if (record.severity !== 'DEBUG') {
-        this.dispatch(addUserMessage(record));
-      }
-      this.dispatch(addLogRecord(record));
+    this.hwrSocket.on('connect', () => {
+      console.log('hwrSocket connected!'); // eslint-disable-line no-console
+      dispatch(showConnectionLostDialog(false));
     });
 
-    this.loggingSocket.on('disconnect', (reason) => {
-      if (reason === 'io server disconnect') {
-        const socket = this.loggingSocket;
-        setTimeout(() => {
-          socket.connect();
-        }, 500);
-      }
+    this.hwrSocket.on('connect_error', (error) => {
+      console.error('hwrSocket connection error:', error.message); // eslint-disable-line no-console
+    });
+
+    this.hwrSocket.on('disconnect', (reason) => {
+      console.log('hwrSocket disconnected!'); // eslint-disable-line no-console
+
+      setTimeout(() => {
+        dispatch(
+          // Show message if socket still hasn't reconnected (and wasn't manually disconnected in the first place)
+          showConnectionLostDialog(this.hwrSocket && !this.hwrSocket.connected),
+        );
+      }, 2000);
     });
 
     this.hwrSocket.on('ra_chat_message', (record) => {
       const { username } = store.getState().login.user;
-      if (record.username !== username) {
+      if (record.username !== username && !record.read) {
         addResponseMessage(
           `${record.date} **${record.nickname}:** \n\n ${record.message}`,
         );
-        this.dispatch(incChatMessageCount());
+        dispatch(incChatMessageCount());
       }
     });
 
     this.hwrSocket.on('motor_position', (record) => {
-      this.dispatch(saveMotorPosition(record.name, record.position));
+      dispatch(saveMotorPosition(record.name, record.position));
     });
 
     this.hwrSocket.on('motor_state', (record) => {
-      this.dispatch(updateMotorState(record.name, record.state));
+      dispatch(updateMotorState(record.name, record.state));
     });
 
     this.hwrSocket.on('update_shapes', (record) => {
-      this.dispatch(setShapes(record.shapes));
+      dispatch(setShapes(record.shapes));
     });
 
     this.hwrSocket.on('update_pixels_per_mm', (record) => {
-      this.dispatch(setPixelsPerMm(record.pixelsPerMm));
+      dispatch(setPixelsPerMm(record.pixelsPerMm));
     });
 
     this.hwrSocket.on('beam_changed', (record) => {
-      this.dispatch(setBeamInfo(record.data));
-    });
-
-    this.hwrSocket.on('mach_info_changed', (info) => {
-      this.dispatch(setMachInfo(info));
+      dispatch(setBeamInfo(record.data));
     });
 
     this.hwrSocket.on('hardware_object_changed', (data) => {
-      this.dispatch(updateBeamlineHardwareObjectAction(data));
+      dispatch(updateBeamlineHardwareObjectAction(data));
     });
 
     this.hwrSocket.on('hardware_object_attribute_changed', (data) => {
-      this.dispatch(updateBeamlineHardwareObjectAttributeAction(data));
+      dispatch(updateBeamlineHardwareObjectAttributeAction(data));
     });
 
     this.hwrSocket.on('hardware_object_value_changed', (data) => {
-      this.dispatch(updateBeamlineHardwareObjectValueAction(data));
+      dispatch(updateBeamlineHardwareObjectValueAction(data));
     });
 
     this.hwrSocket.on('grid_result_available', (data) => {
-      this.dispatch(updateShapes([data.shape]));
+      dispatch(updateShapesAction([data.shape]));
     });
 
     this.hwrSocket.on('energy_scan_result', (data) => {
-      this.dispatch(setEnergyScanResult(data.pk, data.ip, data.rm));
+      dispatch(setEnergyScanResult(data.pk, data.ip, data.rm));
     });
 
     this.hwrSocket.on('update_task_lims_data', (record) => {
-      this.dispatch(
+      dispatch(
         updateTaskLimsData(
           record.sample,
           record.taskIndex,
@@ -239,10 +190,10 @@ class ServerIO {
           (record.state === 1 && !taskCollapsed) ||
           (record.state >= 2 && taskCollapsed)
         ) {
-          this.dispatch(collapseItem(record.queueID));
+          dispatch(collapseItem(record.queueID));
         }
 
-        this.dispatch(
+        dispatch(
           addTaskResultAction(
             record.sample,
             record.taskIndex,
@@ -256,43 +207,42 @@ class ServerIO {
     });
 
     this.hwrSocket.on('add_task', (record) => {
-      this.dispatch(addTaskAction(record.tasks));
+      dispatch(addTaskAction(record.tasks));
     });
 
     this.hwrSocket.on('add_diff_plan', (record, callback) => {
       if (callback) {
         callback();
       }
-      this.dispatch(addDiffractionPlanAction(record.tasks));
+      dispatch(addDiffractionPlanAction(record.tasks));
     });
 
-    this.hwrSocket.on('queue', (record, callback) => {
-      if (callback) {
-        callback();
-      }
-
+    this.hwrSocket.on('queue', (record) => {
       if (record.Signal === 'DisableSample') {
-        this.dispatch(setSampleAttribute([record.sampleID], 'checked', false));
+        dispatch(setSampleAttribute([record.sampleID], 'checked', false));
       } else if (record.Signal === 'update') {
-        const state = store.getState();
-        if (!state.login.user.inControl) {
-          this.dispatch(fetchQueue());
+        if (record.message === 'all') {
+          dispatch(getQueue());
+        } else if (record.message === 'observers') {
+          const state = store.getState();
+          if (!state.login.user.inControl) {
+            dispatch(getQueue());
+          }
         }
       } else {
-        this.dispatch(setStatus(record.Signal));
+        dispatch(setStatus(record.Signal));
       }
     });
 
     this.hwrSocket.on('sc', (record) => {
       switch (record.signal) {
         case 'operatingSampleChanger': {
-          this.dispatch(
-            setLoading(
-              true,
+          dispatch(
+            showWaitDialog(
               'Sample changer in operation',
               record.message,
               true,
-              () => this.dispatch(stopQueue()),
+              () => dispatch(stopQueue()),
             ),
           );
 
@@ -301,13 +251,12 @@ class ServerIO {
 
         case 'loadingSample':
         case 'loadedSample': {
-          this.dispatch(
-            setLoading(
-              true,
+          dispatch(
+            showWaitDialog(
               `Loading sample ${record.location}`,
               record.message,
               true,
-              () => this.dispatch(stopQueue()),
+              () => dispatch(stopQueue()),
             ),
           );
 
@@ -316,13 +265,12 @@ class ServerIO {
 
         case 'unLoadingSample':
         case 'unLoadedSample': {
-          this.dispatch(
-            setLoading(
-              true,
+          dispatch(
+            showWaitDialog(
               `Unloading sample ${record.location}`,
               record.message,
               true,
-              () => this.dispatch(stopQueue()),
+              () => dispatch(stopQueue()),
             ),
           );
 
@@ -330,22 +278,12 @@ class ServerIO {
         }
 
         case 'loadReady': {
-          this.dispatch(
-            setLoading(false, 'SC Ready', record.message, true, () =>
-              this.dispatch(stopQueue()),
-            ),
-          );
-
+          dispatch(hideWaitDialog());
           break;
         }
 
         case 'inSafeArea': {
-          this.dispatch(
-            setLoading(false, 'SC Safe', record.message, true, () =>
-              this.dispatch(stopQueue()),
-            ),
-          );
-
+          dispatch(hideWaitDialog());
           break;
         }
 
@@ -355,61 +293,43 @@ class ServerIO {
 
     this.hwrSocket.on('sample_centring', (data) => {
       if (data.method === CLICK_CENTRING) {
-        this.dispatch(startClickCentring());
+        dispatch(startClickCentringAction());
         const msg =
           '3-Click Centring: <br /> Select centered position or center';
-        this.dispatch(videoMessageOverlay(true, msg));
+        dispatch(videoMessageOverlay(true, msg));
       } else {
         const msg = 'Auto loop centring: <br /> Save position or re-center';
-        this.dispatch(videoMessageOverlay(true, msg));
+        dispatch(videoMessageOverlay(true, msg));
       }
-    });
-
-    this.hwrSocket.on('disconnect', (reason) => {
-      if (reason === 'io server disconnect') {
-        const socket = this.hwrSocket;
-        setTimeout(() => {
-          socket.connect();
-        }, 500);
-      }
-      if (this.connected) {
-        this.connected = false;
-        setTimeout(() => {
-          this.dispatch(showConnectionLostDialog(!this.connected));
-        }, 2000);
-      }
-    });
-
-    this.hwrSocket.on('connect', () => {
-      this.connected = true;
-      this.dispatch(showConnectionLostDialog(false));
     });
 
     this.hwrSocket.on('resumeQueueDialog', () => {
-      this.dispatch(showResumeQueueDialog(true));
+      dispatch(showResumeQueueDialog(true));
     });
 
-    this.hwrSocket.on('observersChanged', (data) => {
-      const state = store.getState();
+    this.hwrSocket.on('userChanged', async (message) => {
+      const { inControl: wasInControl, requestsControl: wasRequestingControl } =
+        store.getState().login.user;
 
-      if (
-        data.observers.length > 0 &&
-        data.operator.username === state.login.user.username &&
-        !state.login.user.inControl
-      ) {
-        this.dispatch(setLoading(true, 'You were given control', data.message));
-      } else if (
-        data.observers.length > 0 &&
-        state.login.user.inControl &&
-        data.observers
-          .map((el) => el.username)
-          .includes(state.login.user.username)
-      ) {
-        this.dispatch(setLoading(true, 'You lost control', 'You lost control'));
+      await dispatch(getLoginInfo());
+
+      const newState = store.getState();
+      const { inControl, requestsControl } = newState.login.user;
+      const hasIncomingRequest = newState.remoteAccess.observers.some(
+        (o) => o.requestsControl,
+      );
+
+      if (!wasInControl && inControl && !hasIncomingRequest) {
+        dispatch(showWaitDialog('You were given control', message));
+      } else if (wasInControl && !inControl) {
+        dispatch(showWaitDialog('You lost control'));
+      } else if (wasRequestingControl && !requestsControl && !inControl) {
+        dispatch(showWaitDialog('You were denied control', message));
       }
+    });
 
-      this.dispatch(getRaState());
-      this.dispatch(getLoginInfo());
+    this.hwrSocket.on('observersChanged', () => {
+      dispatch(getRaState());
     });
 
     this.hwrSocket.on('observerLogout', (observer) => {
@@ -429,20 +349,24 @@ class ServerIO {
     });
 
     this.hwrSocket.on('forceSignout', () => {
-      this.dispatch(forcedSignout());
-      serverIO.disconnect();
+      this.disconnect();
+      dispatch(signOut());
     });
 
     this.hwrSocket.on('workflowParametersDialog', (data) => {
-      this.dispatch(showWorkflowParametersDialog(data));
+      if (data) {
+        dispatch(showWorkflowParametersDialog(data, true));
+      } else {
+        dispatch(showWorkflowParametersDialog(null, false));
+      }
     });
 
     this.hwrSocket.on('gphlWorkflowParametersDialog', (data) => {
-      this.dispatch(showGphlWorkflowParametersDialog(data));
+      dispatch(showGphlWorkflowParametersDialog(data));
     });
 
     this.hwrSocket.on('gphlWorkflowUpdateUiParametersDialog', (data) => {
-      this.dispatch(updateGphlWorkflowParametersDialog(data));
+      dispatch(updateGphlWorkflowParametersDialog(data));
     });
 
     this.hwrSocket.on('take_xtal_snapshot', (cb) => {
@@ -450,44 +374,82 @@ class ServerIO {
     });
 
     this.hwrSocket.on('beamline_action', (data) => {
-      this.dispatch(setActionState(data.name, data.state, data.data));
+      dispatch(setActionState(data.name, data.state, data.data));
     });
 
     this.hwrSocket.on('sc_state', (state) => {
-      this.dispatch(setSCState(state));
+      dispatch(setSCState(state));
     });
 
     this.hwrSocket.on('loaded_sample_changed', (data) => {
-      this.dispatch(setLoadedSample(data));
+      dispatch(setLoadedSample(data));
     });
 
     this.hwrSocket.on('set_current_sample', (sample) => {
-      this.dispatch(setCurrentSample(sample.sampleID));
+      dispatch(setCurrentSample(sample.sampleID));
     });
 
     this.hwrSocket.on('sc_maintenance_update', (data) => {
-      this.dispatch(setSCGlobalState(data));
+      dispatch(setSCGlobalState(data));
     });
 
     this.hwrSocket.on('sc_contents_update', () => {
-      this.dispatch(updateSCContents());
+      dispatch(updateSCContents());
     });
 
     this.hwrSocket.on('diff_phase_changed', (data) => {
-      this.dispatch(setCurrentPhase(data.phase));
+      dispatch(setCurrentPhase(data.phase));
     });
 
     this.hwrSocket.on('new_plot', (plotInfo) => {
-      this.dispatch(newPlot(plotInfo));
+      dispatch(newPlot(plotInfo));
     });
 
     this.hwrSocket.on('plot_data', (data) => {
-      this.dispatch(plotData(data.id, data.data, false));
+      dispatch(plotData(data.id, data.data, false));
     });
 
     this.hwrSocket.on('plot_end', (data) => {
-      this.dispatch(plotData(data.id, data.data, true));
-      this.dispatch(plotEnd(data));
+      dispatch(plotData(data.id, data.data, true));
+      dispatch(plotEnd(data));
+    });
+
+    this.hwrSocket.on('harvester_state', (state) => {
+      dispatch(setHarvesterState(state));
+    });
+
+    this.hwrSocket.on('harvester_contents_update', () => {
+      dispatch(updateHarvesterContents());
+    });
+  }
+
+  connectLogging() {
+    this.loggingSocket = io.connect(`/logging`);
+
+    this.loggingSocket.on('connect', () => {
+      console.log('loggingSocket connected!'); // eslint-disable-line no-console
+    });
+
+    this.loggingSocket.on('connect_error', (error) => {
+      console.error('loggingSocket connection error:', error.message); // eslint-disable-line no-console
+    });
+
+    this.loggingSocket.on('disconnect', (reason) => {
+      console.log('loggingSocket disconnected!'); // eslint-disable-line no-console
+
+      if (reason === 'io server disconnect') {
+        const socket = this.loggingSocket;
+        setTimeout(() => {
+          socket.connect();
+        }, 500);
+      }
+    });
+
+    this.loggingSocket.on('log_record', (record) => {
+      if (record.severity !== 'DEBUG') {
+        dispatch(addUserMessage(record));
+      }
+      dispatch(addLogRecord(record));
     });
   }
 }

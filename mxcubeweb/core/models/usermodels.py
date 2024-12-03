@@ -1,20 +1,26 @@
 import pytz
 import tzlocal
-
-from mxcubeweb.core.components.user.database import Base
-from flask_security import UserMixin, RoleMixin
-from sqlalchemy.orm import relationship, backref
+from flask_security import (
+    RoleMixin,
+    UserMixin,
+)
 from sqlalchemy import (
+    JSON,
     Boolean,
-    Text,
-    Unicode,
-    DateTime,
     Column,
+    DateTime,
+    ForeignKey,
     Integer,
     String,
-    ForeignKey,
-    JSON,
+    Text,
+    Unicode,
 )
+from sqlalchemy.orm import (
+    backref,
+    relationship,
+)
+
+from mxcubeweb.core.components.user.database import Base
 
 
 class RolesUsers(Base):
@@ -43,6 +49,10 @@ class Message(Base):
     id = Column(Integer(), primary_key=True)
     at = Column(DateTime())
     message = Column(Text())
+    read = Column(Boolean(False))
+    from_username = Column(String(255), unique=False)
+    from_nickname = Column(String(255), unique=False)
+    from_host = Column(String(255), unique=False)
 
 
 class User(Base, UserMixin):
@@ -51,6 +61,7 @@ class User(Base, UserMixin):
     email = Column(String(255), unique=True)
     username = Column(Unicode, unique=True, nullable=True)
     nickname = Column(String(255), unique=False)
+    fullname = Column(String(255), unique=False)
     password = Column(String(255), nullable=False)
     session_id = Column(String(255), unique=False)
     socketio_session_id = Column(String(255), unique=False)
@@ -63,12 +74,15 @@ class User(Base, UserMixin):
     fs_uniquifier = Column(String(255), unique=True, nullable=False)
     confirmed_at = Column(DateTime())
     requests_control = Column(Boolean(False))
+    requests_control_msg = Column(String(255))
     in_control = Column(Boolean(False))
     selected_proposal = Column(String(255), unique=False)
     proposal_list = Column(JSON, unique=False)
     current_limssession = Column(JSON, unique=False)
     limsdata = Column(JSON, unique=False)
     last_request_timestamp = Column(DateTime())
+    refresh_token = Column(String(255), unique=True)
+    token = Column(String(255), unique=True)
     roles = relationship(
         "Role",
         secondary="roles_users",
@@ -106,4 +120,6 @@ class User(Base, UserMixin):
             "ip": self.current_login_ip,
             "currentLoginAt": current_login_at_str,
             "requestsControl": self.requests_control,
+            "requestsControlMsg": self.requests_control_msg,
+            "fullname": self.fullname,
         }

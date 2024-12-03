@@ -1,8 +1,14 @@
-import os
+import io
 import json
+import logging
 
-from flask import Blueprint, Response, jsonify, request
-
+from flask import (
+    Blueprint,
+    Response,
+    jsonify,
+    request,
+    send_file,
+)
 from mxcubecore import HardwareRepository as HWR
 
 
@@ -35,22 +41,40 @@ def init_route(app, server, url_prefix):  # noqa: C901
         HWR.beamline.sample_view.camera.streaming_greenlet.kill()
         return Response(status=200)
 
-    @bp.route("/camera/save", methods=["PUT"])
+    @bp.route("/camera/snapshot", methods=["POST"])
     @server.restrict
     def snapshot():
         """
-        Save snapshot of the sample view
-        data = {generic_data, "Path": path} # not sure if path should be available,
-        or directly use the user/proposal path
-        Return: 'True' if command issued succesfully, otherwise 'False'.
+        Take snapshot of the sample view
+        data = {"overlay": overlay_data} overlay is the image data to overlay on sample image,
+        it should normally contain the data of shapes drawn on canvas.
+        Return: Overlayed image uri, if successful, statuscode 500 otherwise.
         """
         try:
-            HWR.beamline.sample_view.camera.takeSnapshot(
-                os.path.join(os.path.dirname(__file__), "snapshots/")
+            overlay = json.loads(request.data).get("overlay")
+            mimetype, overlay_data = overlay.split(",")
+
+            # Check if send data is a jpeg image
+            if "image/jpeg" not in mimetype:
+                raise Exception("Image type should be jpeg")
+
+            image = HWR.beamline.sample_view.take_snapshot(
+                overlay_data=overlay_data,
             )
-            return "True"
+
+            b = io.BytesIO()
+            image.save(b, "JPEG")
+            b.seek(0)
+
+            return send_file(
+                b,
+                mimetype="image/jpeg",
+                as_attachment=True,
+                download_name="snapshot.jpeg",
+            )
         except Exception:
-            return "False"
+            logging.getLogger("MX3.HWR").exception("Taking a snapshot failed")
+            return jsonify({"error": "Taking a snapshot failed"})
 
     @bp.route("/camera", methods=["GET"])
     @server.restrict
@@ -135,20 +159,18 @@ def init_route(app, server, url_prefix):  # noqa: C901
             return Response(status=409)
 
     @bp.route("/shapes/<sid>", methods=["POST"])
-    def shape_add_cell_result(sid):
+    def shape_add_result(sid):
         """
-        Update cell result data.
-            :parameter shape_data: dict with result info (cell number, result value)
+        Update shape result data.
+            :parameter shape_data: dict with result info (result value dict, data file path)
             :response Content-type: application/json, response status.
             :statuscode: 200: no error
             :statuscode: 409: error
         """
         params = request.get_json()
-
-        cell_number = params.get("cell", 0)
-        result = params.get("result", 0)
-
-        app.sample_view.shape_add_cell_result(sid, cell_number, result)
+        result = params.get("result")
+        data_file = params.get("data_file")
+        app.sample_view.shape_add_result(sid, result, data_file)
         return Response(status=200)
 
     @bp.route("/shapes", methods=["POST"])
@@ -204,123 +226,6 @@ def init_route(app, server, url_prefix):  # noqa: C901
             resp = Response(status=200)
 
         return resp
-
-    @bp.route("/zoom", methods=["PUT"])
-    @server.require_control
-    @server.restrict
-    def move_zoom_motor():
-        """
-        Move the zoom motor.
-            :request Content-type: application/json, new position {'level': 4}.
-            Note: level specified as integer (not 'Zoom 4')
-            :response Content-type: application/json, new scale value,
-            example: {"pixelsPerMm": [ 1661.1, 1661.1]}
-            :statuscode: 200: no error
-            :statuscode: 409: error
-        """
-        params = request.data
-        pos = json.loads(params).get("level", 0)
-
-        res = app.sample_view.move_zoom_motor(pos)
-
-        resp = jsonify(res)
-        resp.status_code = 200
-        return resp
-
-    @bp.route("/backlighton", methods=["PUT"])
-    @server.require_control
-    @server.restrict
-    def back_light_on():
-        """
-        Activate the backlight of the diffractometer.
-            :statuscode: 200: no error
-            :statuscode: 409: error
-        """
-        app.sample_view.back_light_on()
-        return Response(status=200)
-
-    @bp.route("/backlightoff", methods=["PUT"])
-    @server.require_control
-    @server.restrict
-    def back_light_off():
-        """
-        Switch off the backlight of the diffractometer.
-            :statuscode: 200: no error
-            :statuscode: 409: error
-        """
-        app.sample_view.back_light_off()
-        return Response(status=200)
-
-    @bp.route("/frontlighton", methods=["PUT"])
-    @server.require_control
-    @server.restrict
-    def front_light_on():
-        """
-        Activate the frontlight of the diffractometer.
-            :statuscode: 200: no error
-            :statuscode: 409: error
-        """
-        app.sample_view.front_light_on()
-        return Response(status=200)
-
-    @bp.route("/frontlightoff", methods=["PUT"])
-    @server.require_control
-    @server.restrict
-    def front_light_off():
-        """
-        Switch off the frontlight of the diffractometer.
-            :statuscode: 200: no error
-            :statuscode: 409: error
-        """
-        app.sample_view.front_light_off()
-        return Response(status=200)
-
-    @bp.route("/<motid>/<newpos>", methods=["PUT"])
-    @server.require_control
-    @server.restrict
-    def move_motor(motid, newpos):
-        """
-        Move or Stop the given motor.
-        :parameter motid: motor name, 'Phi', 'Focus', 'PhiZ', 'PhiY', 'Zoom',
-        'BackLightSwitch','BackLight','FrontLightSwitch', 'FrontLight',
-        'Sampx', 'Sampy'
-        :parameter newpos: new position, double, stop: string
-        :statuscode: 200: no error
-        :statuscode: 409: error
-        """
-
-        try:
-            app.sample_view.move_motor(motid, newpos)
-        except Exception as ex:
-            return (
-                "Could not move motor %s" % str(ex),
-                409,
-                {"Content-Type": "application/json", "msg": str(ex)},
-            )
-        else:
-            return Response(status=200)
-
-    # @bp.route("/<elem_id>", methods=["GET"])
-    # @server.restrict
-    # def get_status_of_id(elem_id):
-    #     """
-    #     Get position and status of the given element
-    #         :parameter id: moveable to get its status, 'Phi', 'Focus', 'PhiZ',
-    #         'PhiY', 'Zoom', 'BackLightSwitch','BackLight','FrontLightSwitch',
-    #         'FrontLight','Sampx', 'Sampy'
-    #         :response Content-type: application/json, {motorname:
-    #             {'Status': status, 'position': position} }
-    #         :statuscode: 200: no error
-    #         :statuscode: 409: error
-    #     """
-
-    #     try:
-    #         ret = app.sample_view.get_status_of_id(elem_id)
-    #         resp = jsonify(ret)
-    #         resp.status_code = 200
-    #         return resp
-    #     except Exception:
-    #         return Response(status=409)
 
     @bp.route("/centring/startauto", methods=["GET"])
     @server.require_control
