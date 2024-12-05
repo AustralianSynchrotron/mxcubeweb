@@ -3032,7 +3032,7 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
 reference = "update_ansto_hardware_objects"
-resolved_reference = "547e975806eeabb3c6a0490fd0901e7184011611"
+resolved_reference = "37e3afc0cf4ff52caadf8c9f2e63f1c44ff08c49"
 
 [[package]]
 name = "myst-parser"
