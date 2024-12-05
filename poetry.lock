@@ -2964,7 +2964,7 @@ as-redis-signal = ["as-redis-signal @ git+https://bitbucket.synchrotron.org.au/s
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git"
 reference = "update_tray_plans"
-resolved_reference = "62fe8eba5d6327673265241c2d0d1cc00d63e80d"
+resolved_reference = "a6938972f103da5f9b8013dadcddc6cd4c9b29e9"
 
 [[package]]
 name = "mxcube-video-streamer"
@@ -3032,7 +3032,7 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
 reference = "update_ansto_hardware_objects"
-resolved_reference = "923716a00c1cb93acbf02b8af3daea90a48b2614"
+resolved_reference = "547e975806eeabb3c6a0490fd0901e7184011611"
 
 [[package]]
 name = "myst-parser"
