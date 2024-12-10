@@ -2963,8 +2963,8 @@ as-redis-signal = ["as-redis-signal @ git+https://bitbucket.synchrotron.org.au/s
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git"
-reference = "update_tray_plans"
-resolved_reference = "775f801914f93f3c5333101471ff44521af6b60c"
+reference = "v1.2.5"
+resolved_reference = "9e59cb8fceca1422f6f02b0ced5339d4a7aabb52"
 
 [[package]]
 name = "mxcube-video-streamer"
@@ -2989,7 +2989,7 @@ websockets = ">=12.0,<13.0"
 
 [[package]]
 name = "mxcubecore"
-version = "1.195.0.0"
+version = "1.195.0.1"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.12"
@@ -3008,7 +3008,7 @@ jsonschema = "^4.17.1"
 lucid3 = "^3.0.0"
 lxml = "^4.9.1"
 matplotlib = "^3.6.2"
-mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "update_tray_plans", markers = "python_version >= \"3.10\""}
+mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v1.2.5", markers = "python_version >= \"3.10\""}
 numpy = "^1.23.5"
 Pillow = "^10.4.0"
 prefect = {version = "2.19.9", optional = true}
@@ -3032,7 +3032,7 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
 reference = "update_ansto_hardware_objects"
-resolved_reference = "0c00838f4db20fe076eeee646889608a945973f0"
+resolved_reference = "db7ac5d181a6b2dd8a3a4137dd72111cb65cc831"
 
 [[package]]
 name = "myst-parser"
