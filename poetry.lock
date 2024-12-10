@@ -3031,8 +3031,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "update_ansto_hardware_objects"
-resolved_reference = "db7ac5d181a6b2dd8a3a4137dd72111cb65cc831"
+reference = "v1.195.0.1"
+resolved_reference = "3bdf09348fa6dc2c1635a8f76d63db2803419311"
 
 [[package]]
 name = "myst-parser"
@@ -5821,4 +5821,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.12"
-content-hash = "4cefdf8ed7cfcde2678401bb7bf9d08972e4c947ceb8e5c713fe957d221f6311"
+content-hash = "554eb6d3beff3ec0f7b893b3f1df30a45dce7cafd0605db51e6bf083c8c0be8a"
