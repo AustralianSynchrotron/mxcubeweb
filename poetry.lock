@@ -2963,8 +2963,8 @@ as-redis-signal = ["as-redis-signal @ git+https://bitbucket.synchrotron.org.au/s
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git"
-reference = "v1.2.5"
-resolved_reference = "9e59cb8fceca1422f6f02b0ced5339d4a7aabb52"
+reference = "update_shutter_device"
+resolved_reference = "0efb5838ac0506b0f1bbb842073db01614674348"
 
 [[package]]
 name = "mxcube-video-streamer"
@@ -3008,7 +3008,7 @@ jsonschema = "^4.17.1"
 lucid3 = "^3.0.0"
 lxml = "^4.9.1"
 matplotlib = "^3.6.2"
-mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v1.2.5", markers = "python_version >= \"3.10\""}
+mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "update_shutter_device", markers = "python_version >= \"3.10\""}
 numpy = "^1.23.5"
 Pillow = "^10.4.0"
 prefect = {version = "2.19.9", optional = true}
@@ -3032,7 +3032,7 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
 reference = "add_shutters"
-resolved_reference = "c453e96e8179866ab0546da42c0809f890b1b883"
+resolved_reference = "d3a1a5a8cdd1656a77ff8569e458a08d3cbdba17"
 
 [[package]]
 name = "myst-parser"
