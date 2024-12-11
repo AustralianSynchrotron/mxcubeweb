@@ -3032,7 +3032,7 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
 reference = "add_shutters"
-resolved_reference = "ed634be714fd0940c22299aa218dd9f88b1fb178"
+resolved_reference = "c453e96e8179866ab0546da42c0809f890b1b883"
 
 [[package]]
 name = "myst-parser"
