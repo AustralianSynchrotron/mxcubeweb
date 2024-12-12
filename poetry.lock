@@ -2927,7 +2927,7 @@ resolved_reference = "be3fa08114c279168b005f6d68e950e0ae53a020"
 
 [[package]]
 name = "mx3-beamline-library"
-version = "1.2.5"
+version = "1.2.6"
 description = "Ophyd devices and bluesky plans."
 optional = false
 python-versions = ">=3.10,<3.12"
@@ -2964,8 +2964,8 @@ as-redis-signal = ["as-redis-signal @ git+https://bitbucket.synchrotron.org.au/s
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git"
-reference = "update_shutter_device"
-resolved_reference = "2e469cefb7b6f811bd06555905b9c1c2577c9d86"
+reference = "v1.2.6"
+resolved_reference = "e159e499694d086da0998344ae257e398071d429"
 
 [[package]]
 name = "mxcube-video-streamer"
@@ -2990,7 +2990,7 @@ websockets = ">=12.0,<13.0"
 
 [[package]]
 name = "mxcubecore"
-version = "1.195.0.1"
+version = "1.195.0.2"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.12"
@@ -3009,7 +3009,7 @@ jsonschema = "^4.17.1"
 lucid3 = "^3.0.0"
 lxml = "^4.9.1"
 matplotlib = "^3.6.2"
-mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "update_shutter_device", markers = "python_version >= \"3.10\""}
+mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v1.2.6", markers = "python_version >= \"3.10\""}
 numpy = "^1.23.5"
 Pillow = "^10.4.0"
 prefect = {version = "2.19.9", optional = true}
@@ -3032,8 +3032,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "add_shutters"
-resolved_reference = "f5ee48c4b42dc958f43bb4f59aa225a6e7fb76dc"
+reference = "v1.195.0.2"
+resolved_reference = "8134f471105e6accddbc6b72c9ada055ec350907"
 
 [[package]]
 name = "myst-parser"
@@ -5822,4 +5822,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8,<3.12"
-content-hash = "53262f5cc79f092f96fa61f4bdf0a5be1073b6c83c1df6fb4ac422ba45323650"
+content-hash = "af7819c4069dbb25c2e9dae479814d9f58c69277d3ee9827674e0df1cad7ec0d"
