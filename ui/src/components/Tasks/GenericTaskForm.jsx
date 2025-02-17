@@ -284,7 +284,7 @@ class GenericTaskForm extends React.Component {
           <Modal.Title>{this.props.taskData.parameters.name}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form>
+          {/* <Form>
             <StaticField label="Path" data={this.props.path} />
             <StaticField label="Filename" data={this.props.filename} />
             <Row className="mb-2">
@@ -329,7 +329,7 @@ class GenericTaskForm extends React.Component {
                 </Col>
               ) : null}
             </Row>
-          </Form>
+          </Form> */}
 
           <FieldsHeader title="Acquisition" />
           <div className="json-schema-form-container">

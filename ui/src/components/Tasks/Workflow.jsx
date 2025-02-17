@@ -55,7 +55,7 @@ function Workflow(props) {
       <Modal.Body>
         <Form>
           <StaticField label="Path" data={props.path} />
-          <StaticField label="Filename" data={props.filename} />
+          {/* <StaticField label="Filename" data={props.filename} />
           <Row className="mt-3">
             <InputField
               propName="subdir"
@@ -88,7 +88,7 @@ function Workflow(props) {
                 col2={7}
               />
             </div>
-          )}
+          )} */}
         </Form>
       </Modal.Body>
 

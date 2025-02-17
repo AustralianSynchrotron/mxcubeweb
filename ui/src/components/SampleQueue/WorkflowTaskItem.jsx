@@ -55,7 +55,7 @@ export default class WorkflowTaskItem extends Component {
       >
         <a href={link} target="_blank" rel="noreferrer">
           {' '}
-          View Results in ISPyB
+          View Results in MX-PRISM
         </a>
       </div>
     );

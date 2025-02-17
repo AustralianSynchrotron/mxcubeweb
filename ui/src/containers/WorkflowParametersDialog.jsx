@@ -20,30 +20,16 @@ function WorkflowParametersDialog() {
     dispatch(showWorkflowParametersDialog(null, false));
   }
 
-  useEffect(() => {
-    function handleKeyDown(event) {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-      }
-    }
-
-    if (show) {
-      window.addEventListener('keydown', handleKeyDown);
-    } else {
-      window.removeEventListener('keydown', handleKeyDown);
-    }
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [show]);
+  function handleClose() {
+    dispatch(submitWorkflowParameters({}));
+    dispatch(showWorkflowParametersDialog(null, false));
+  }
 
   return (
     <Modal
       show={show}
-      onHide={() => dispatch(showWorkflowParametersDialog(null, false))}
+      onHide={handleClose}
       backdrop="static"
-      keyboard={false} // Prevent closing with Escape key
     >
       <Modal.Header closeButton>
         <Modal.Title>{formData ? formData.dialogName : ''}</Modal.Title>
@@ -59,7 +45,7 @@ function WorkflowParametersDialog() {
                 schema={formData}
                 formData={formData.initialValues}
                 onSubmit={submitData}
-                onError={console.log('onError message???')} // eslint-disable-line no-console
+                onError={console.log('error')} // eslint-disable-line no-console
               />
             </div>
           )}
