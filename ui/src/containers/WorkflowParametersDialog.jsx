@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Modal } from 'react-bootstrap';
 import Form from '@rjsf/core';
@@ -20,11 +20,30 @@ function WorkflowParametersDialog() {
     dispatch(showWorkflowParametersDialog(null, false));
   }
 
+  useEffect(() => {
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+      }
+    }
+
+    if (show) {
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      window.removeEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [show]);
+
   return (
     <Modal
       show={show}
       onHide={() => dispatch(showWorkflowParametersDialog(null, false))}
       backdrop="static"
+      keyboard={false} // Prevent closing with Escape key
     >
       <Modal.Header closeButton>
         <Modal.Title>{formData ? formData.dialogName : ''}</Modal.Title>
@@ -40,7 +59,7 @@ function WorkflowParametersDialog() {
                 schema={formData}
                 formData={formData.initialValues}
                 onSubmit={submitData}
-                onError={console.log('errors')} // eslint-disable-line no-console
+                onError={console.log('onError message???')} // eslint-disable-line no-console
               />
             </div>
           )}
