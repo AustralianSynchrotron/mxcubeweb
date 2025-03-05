@@ -174,8 +174,8 @@ function GphlWorkflowParametersDialog(props) {
       e.target.type === 'number'
         ? Number(e.target.value)
         : e.target.type === 'checkbox'
-        ? e.target.checked
-        : e.target.value;
+          ? e.target.checked
+          : e.target.value;
 
     const form = e.currentTarget;
 

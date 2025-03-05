@@ -7,36 +7,39 @@ import validate from './validate';
 function Workflow(props) {
   const isGphlWorkflow = props.wfpath === 'Gphl';
 
-  const addToQueue = useCallback((runNow, params) => {
-    const parameters = {
-      ...params,
-      type: isGphlWorkflow ? 'GphlWorkflow' : 'Workflow',
-      label: params.wfname,
-      shape: props.pointID,
-      suffix: props.suffix,
-    };
+  const addToQueue = useCallback(
+    (runNow, params) => {
+      const parameters = {
+        ...params,
+        type: isGphlWorkflow ? 'GphlWorkflow' : 'Workflow',
+        label: params.wfname,
+        shape: props.pointID,
+        suffix: props.suffix,
+      };
 
-    // Form gives us all parameter values in strings so we need to transform numbers back
-    const stringFields = [
-      'centringMethod',
-      'prefix',
-      'subdir',
-      'type',
-      'shape',
-      'label',
-      'wfname',
-      'wfpath',
-      'suffix',
-    ];
+      // Form gives us all parameter values in strings so we need to transform numbers back
+      const stringFields = [
+        'centringMethod',
+        'prefix',
+        'subdir',
+        'type',
+        'shape',
+        'label',
+        'wfname',
+        'wfpath',
+        'suffix',
+      ];
 
-    if (isGphlWorkflow) {
-      parameters.strategy_name = props.strategy_name;
-      stringFields.push('strategy_name');
-    }
+      if (isGphlWorkflow) {
+        parameters.strategy_name = props.strategy_name;
+        stringFields.push('strategy_name');
+      }
 
-    props.addTask(parameters, stringFields, runNow);
-    props.hide();
-  }, [isGphlWorkflow, props]);
+      props.addTask(parameters, stringFields, runNow);
+      props.hide();
+    },
+    [isGphlWorkflow, props],
+  );
 
   // Automatically call the function that the "Run Now" button triggers
   React.useEffect(() => {

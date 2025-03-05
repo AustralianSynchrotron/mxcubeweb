@@ -26,11 +26,7 @@ function WorkflowParametersDialog() {
   }
 
   return (
-    <Modal
-      show={show}
-      onHide={handleClose}
-      backdrop="static"
-    >
+    <Modal show={show} onHide={handleClose} backdrop="static">
       <Modal.Header closeButton>
         <Modal.Title>{formData ? formData.dialogName : ''}</Modal.Title>
       </Modal.Header>
