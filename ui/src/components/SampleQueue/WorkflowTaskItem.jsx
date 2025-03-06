@@ -40,9 +40,9 @@ export default class WorkflowTaskItem extends Component {
     if (state !== TASK_COLLECTED) {
       return <span />;
     }
-    const link = this.props.data.limsResultData
-      ? this.props.data.limsResultData.limsTaskLink
-      : '';
+    // const link = this.props.data.limsResultData
+    //   ? this.props.data.limsResultData.limsTaskLink
+    //   : '';
     return (
       <div
         style={{
