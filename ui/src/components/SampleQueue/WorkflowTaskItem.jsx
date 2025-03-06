@@ -52,7 +52,11 @@ export default class WorkflowTaskItem extends Component {
           padding: '0.5em',
         }}
       >
-        <a href="https://mx-prism.mx3.beamline.synchrotron.org.au/flow" target="_blank" rel="noreferrer">
+        <a
+          href="https://mx-prism.mx3.beamline.synchrotron.org.au/flow"
+          target="_blank"
+          rel="noreferrer"
+        >
           {' '}
           View Results in MX-PRISM
         </a>
