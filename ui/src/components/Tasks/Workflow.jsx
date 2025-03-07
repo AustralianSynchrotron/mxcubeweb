@@ -1,124 +1,54 @@
 /* eslint-disable react/jsx-handler-names */
-import React from 'react';
+import React, { useCallback } from 'react';
 import { connect } from 'react-redux';
-import { reduxForm, Form, formValueSelector } from 'redux-form';
-import { DraggableModal } from '../DraggableModal';
-import { Modal, Button, Row, ButtonToolbar } from 'react-bootstrap';
+import { reduxForm, formValueSelector } from 'redux-form';
 import validate from './validate';
-import { StaticField, InputField, SelectField } from './fields';
 
 function Workflow(props) {
   const isGphlWorkflow = props.wfpath === 'Gphl';
 
-  const strategyNames = isGphlWorkflow
-    ? Object.values(props.taskData.parameters.strategies).map(
-        ({ title }) => title,
-      )
-    : [];
+  const addToQueue = useCallback(
+    (runNow, params) => {
+      const parameters = {
+        ...params,
+        type: isGphlWorkflow ? 'GphlWorkflow' : 'Workflow',
+        label: params.wfname,
+        shape: props.pointID,
+        suffix: props.suffix,
+      };
 
-  function addToQueue(runNow, params) {
-    const parameters = {
-      ...params,
-      type: isGphlWorkflow ? 'GphlWorkflow' : 'Workflow',
-      label: params.wfname,
-      shape: props.pointID,
-      suffix: props.suffix,
-    };
+      // Form gives us all parameter values in strings so we need to transform numbers back
+      const stringFields = [
+        'centringMethod',
+        'prefix',
+        'subdir',
+        'type',
+        'shape',
+        'label',
+        'wfname',
+        'wfpath',
+        'suffix',
+      ];
 
-    // Form gives us all parameter values in strings so we need to transform numbers back
-    const stringFields = [
-      'centringMethod',
-      'prefix',
-      'subdir',
-      'type',
-      'shape',
-      'label',
-      'wfname',
-      'wfpath',
-      'suffix',
-    ];
+      if (isGphlWorkflow) {
+        parameters.strategy_name = props.strategy_name;
+        stringFields.push('strategy_name');
+      }
 
-    if (isGphlWorkflow) {
-      parameters.strategy_name = props.strategy_name;
-      stringFields.push('strategy_name');
-    }
-
-    props.addTask(parameters, stringFields, runNow);
-    props.hide();
-  }
-
-  return (
-    <DraggableModal show={props.show} onHide={props.hide}>
-      <Modal.Header closeButton>
-        <Modal.Title>{props.wfname}</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        <Form>
-          <StaticField label="Path" data={props.path} />
-          <StaticField label="Filename" data={props.filename} />
-          <Row className="mt-3">
-            <InputField
-              propName="subdir"
-              label="Subdirectory"
-              col1={4}
-              col2={7}
-            />
-          </Row>
-          <Row className="mt-3">
-            <InputField propName="prefix" label="Prefix" col1={4} col2={7} />
-          </Row>
-          {props.taskData.sampleID ? (
-            <Row className="mt-3">
-              <InputField
-                propName="run_number"
-                disabled
-                label="Run number"
-                col1={4}
-                col2={7}
-              />
-            </Row>
-          ) : null}
-          {strategyNames.length > 0 && (
-            <div className="mt-3">
-              <SelectField
-                propName="strategy_name"
-                label="Workflow Strategy"
-                list={strategyNames}
-                col1={4}
-                col2={7}
-              />
-            </div>
-          )}
-        </Form>
-      </Modal.Body>
-
-      {props.taskData.state ? (
-        ''
-      ) : (
-        <Modal.Footer>
-          <ButtonToolbar className="float-end">
-            <Button
-              variant="success"
-              disabled={props.origin === 'samplelist' || props.invalid}
-              onClick={props.handleSubmit((params) => addToQueue(true, params))}
-            >
-              Run Now
-            </Button>
-            <Button
-              className="ms-3"
-              variant="primary"
-              disabled={props.invalid}
-              onClick={props.handleSubmit((params) =>
-                addToQueue(false, params),
-              )}
-            >
-              {props.taskData.sampleID ? 'Change' : 'Add to Queue'}
-            </Button>
-          </ButtonToolbar>
-        </Modal.Footer>
-      )}
-    </DraggableModal>
+      props.addTask(parameters, stringFields, runNow);
+      props.hide();
+    },
+    [isGphlWorkflow, props],
   );
+
+  // Automatically call the function that the "Run Now" button triggers
+  React.useEffect(() => {
+    if (!props.invalid) {
+      addToQueue(true, props.initialValues);
+    }
+  }, [props.invalid, props.initialValues, addToQueue]);
+
+  return null; // Do not render anything
 }
 
 const WorkflowForm = reduxForm({

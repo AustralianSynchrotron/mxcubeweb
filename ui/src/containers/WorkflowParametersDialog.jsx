@@ -20,12 +20,13 @@ function WorkflowParametersDialog() {
     dispatch(showWorkflowParametersDialog(null, false));
   }
 
+  function handleClose() {
+    dispatch(submitWorkflowParameters({}));
+    dispatch(showWorkflowParametersDialog(null, false));
+  }
+
   return (
-    <Modal
-      show={show}
-      onHide={() => dispatch(showWorkflowParametersDialog(null, false))}
-      backdrop="static"
-    >
+    <Modal show={show} onHide={handleClose} backdrop="static">
       <Modal.Header closeButton>
         <Modal.Title>{formData ? formData.dialogName : ''}</Modal.Title>
       </Modal.Header>
@@ -40,7 +41,7 @@ function WorkflowParametersDialog() {
                 schema={formData}
                 formData={formData.initialValues}
                 onSubmit={submitData}
-                onError={console.log('errors')} // eslint-disable-line no-console
+                onError={console.log('error')} // eslint-disable-line no-console
               />
             </div>
           )}

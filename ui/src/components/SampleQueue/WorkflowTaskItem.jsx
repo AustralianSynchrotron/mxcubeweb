@@ -40,10 +40,9 @@ export default class WorkflowTaskItem extends Component {
     if (state !== TASK_COLLECTED) {
       return <span />;
     }
-    const link = this.props.data.limsResultData
-      ? this.props.data.limsResultData.limsTaskLink
-      : '';
-
+    // const link = this.props.data.limsResultData
+    //   ? this.props.data.limsResultData.limsTaskLink
+    //   : '';
     return (
       <div
         style={{
@@ -53,9 +52,13 @@ export default class WorkflowTaskItem extends Component {
           padding: '0.5em',
         }}
       >
-        <a href={link} target="_blank" rel="noreferrer">
+        <a
+          href="https://mx-prism.mx3.beamline.synchrotron.org.au/flow"
+          target="_blank"
+          rel="noreferrer"
+        >
           {' '}
-          View Results in ISPyB
+          View Results in MX-PRISM
         </a>
       </div>
     );
@@ -115,7 +118,6 @@ export default class WorkflowTaskItem extends Component {
   path(parameters) {
     const path = parameters.path || '';
     const pathEndPart = path.slice(-40);
-
     return (
       <TooltipTrigger id="wedge-path-tooltip" tooltipContent={path}>
         <a style={{ flexGrow: 1 }}>
@@ -260,7 +262,8 @@ export default class WorkflowTaskItem extends Component {
                         aria-hidden="true"
                       />
                     </Button>
-                    <Button
+                    {/* Collection parameters are shown in MX Prism */}
+                    {/* <Button
                       variant="outline-secondary"
                       style={{ width: '3em' }}
                       title="Open parameters dialog"
@@ -269,7 +272,7 @@ export default class WorkflowTaskItem extends Component {
                       }
                     >
                       <i aria-hidden="true" className="fa fa-sliders-h" />
-                    </Button>
+                    </Button> */}
                   </div>
                   {this.getResult(state)}
                 </div>
