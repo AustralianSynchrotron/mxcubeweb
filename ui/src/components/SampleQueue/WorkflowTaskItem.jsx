@@ -246,7 +246,8 @@ export default class WorkflowTaskItem extends Component {
                       alignItems: 'center',
                     }}
                   >
-                    <b>Path:</b>
+                    {/* TODO: Correctly display the path once the sample changer HO has been updated*/}
+                    {/* <b>Path:</b>
                     {this.path(parameters)}
                     <Button
                       variant="outline-secondary"
@@ -261,7 +262,7 @@ export default class WorkflowTaskItem extends Component {
                         className="fa fa-copy"
                         aria-hidden="true"
                       />
-                    </Button>
+                    </Button> */}
                     {/* Collection parameters are shown in MX Prism */}
                     {/* <Button
                       variant="outline-secondary"
