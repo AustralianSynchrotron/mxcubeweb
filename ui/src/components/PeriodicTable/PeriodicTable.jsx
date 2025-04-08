@@ -12,7 +12,7 @@ export default class PeriodicTable extends React.Component {
   onClickHandler(e) {
     if (e.target.id) {
       const el = document.querySelector(`#${this.state.selectedElement}`);
-      const [cell] = e.target.children;
+      const cell = e.target.children[0];
 
       if (el) {
         el.children[0].className = styles.element;

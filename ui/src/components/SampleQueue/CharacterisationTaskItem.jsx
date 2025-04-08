@@ -88,7 +88,7 @@ export default class TaskItem extends Component {
     if (tasks.length <= 1) {
       delete data.diffractionPlan[0].run_number;
       delete data.diffractionPlan[0].sampleID;
-      const [{ type, parameters }] = data.diffractionPlan;
+      const { type, parameters } = data.diffractionPlan[0];
 
       this.props.showForm(
         type,

@@ -434,7 +434,7 @@ class SampleGridTableContainer extends React.Component {
       this.props.showGenericContextMenu(true, contextMenuID, e.pageX, e.pageY);
     }
 
-    const [selectedList] = this.getSampleListFilteredByCellPuck(cell, puck);
+    const selectedList = this.getSampleListFilteredByCellPuck(cell, puck)[0];
 
     this.sampleGridItemsSelectedHandler(e, selectedList);
     e.stopPropagation();
@@ -443,9 +443,11 @@ class SampleGridTableContainer extends React.Component {
   renderItemsControls(cell, puck) {
     let icon = <BsSquare size="0.9em" />;
     let pickSample = true;
-
     const filterList = this.getSampleListFilteredByCellPuck(cell, puck);
-    const [allPuckSample, allPuckSampleCheck, puckCode] = filterList;
+
+    const allPuckSample = filterList[0];
+    const allPuckSampleCheck = filterList[1];
+    const puckCode = filterList[2];
 
     if (allPuckSample.length === allPuckSampleCheck.length) {
       icon = <BsCheck2Square size="0.9em" />;
