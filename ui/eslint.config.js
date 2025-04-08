@@ -12,6 +12,7 @@ const config = defineConfig([
       'jsx-a11y/control-has-associated-label': 'off',
       'promise/always-return': 'off',
       'react/destructuring-assignment': 'off',
+      'react/jsx-no-leaked-render': 'off',
       'react/no-multi-comp': 'off',
       'react/no-unused-class-component-methods': 'off',
       'react/prop-types': 'off',
