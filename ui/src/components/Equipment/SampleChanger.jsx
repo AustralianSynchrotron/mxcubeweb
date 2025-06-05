@@ -214,16 +214,17 @@ export default function SampleChanger(props) {
     <Card className="mb-3">
       <Card.Header>Content</Card.Header>
       <Card.Body>
-        {/* <Button variant="outline-secondary" onClick={() => handleRefresh()}>
+        <Button style={{ display: 'none' }} variant="outline-secondary" onClick={() => handleRefresh()}>
           <i className="fas fa-sync" /> Refresh
         </Button>
+    
         <Button
-          style={{ marginLeft: '1em' }}
+          style={{ display: 'none' }} // style={{ marginLeft: '1em' }}
           variant="outline-secondary"
           onClick={scan}
         >
           <i className="fas fa-qrcode" /> Scan all containers
-        </Button> */}
+        </Button>
         <span style={{ marginLeft: '1em' }}>{abortButton}</span>
         {current}
         <div style={{ marginBottom: '1em' }} />
