@@ -74,7 +74,7 @@ export class HelpContainer extends React.Component {
           <Col sm={12} className="d-flex">
             <Col sm={4}>
               {this.localContactPanel()}
-              <Card className="mb-3">
+              {/* <Card className="mb-3">
                 <Card.Header>
                   <span>Feedback</span>
                   <span className="me-3 position-absolute end-0">
@@ -116,7 +116,7 @@ export class HelpContainer extends React.Component {
                     </Form.Group>
                   </Form>
                 </Card.Body>
-              </Card>
+              </Card> */}
               <Card className="mb-2">
                 <Card.Header>
                   <span>About MXCuBE-Web</span>
@@ -128,7 +128,7 @@ export class HelpContainer extends React.Component {
             </Col>
             <Col sm={1} />
             <Col xs={7}>
-              <Card className="mb-2">
+              {/* <Card className="mb-2">
                 <Card.Header>Video Tutorials</Card.Header>
                 <Card.Body>
                   <Row>
@@ -158,7 +158,7 @@ export class HelpContainer extends React.Component {
                     </Col>
                   </Row>
                 </Card.Body>
-              </Card>
+              </Card> */}
               {import.meta.env.VITE_HELP_LINKS ? (
                 <Card
                   header={
