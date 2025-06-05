@@ -75,6 +75,7 @@ class QueueSettings extends React.Component {
         <Dropdown.Menu>
           <Dropdown.Item>
             <Form.Check
+              style={{ display: 'none' }} // Hide auto mount next checkbox
               type="checkbox"
               name="autoMountNext"
               onChange={this.autoMountNextOnClick}
@@ -97,6 +98,7 @@ class QueueSettings extends React.Component {
           </Dropdown.Item>
           <Dropdown.Item>
             <Form.Check
+              style={{ display: 'none' }} // Hide auto diffraction plan checkbox
               type="checkbox"
               name="autoAddDiffPlan"
               onChange={this.setAutoAddDiffPlan}
@@ -107,6 +109,7 @@ class QueueSettings extends React.Component {
           </Dropdown.Item>
           <Dropdown.Item>
             <Form.Check
+              style={{ display: 'none' }} // Hide remember parameters checkbox
               type="checkbox"
               name="rememberParametersBetweenSamples"
               onChange={(e) => {
@@ -120,14 +123,15 @@ class QueueSettings extends React.Component {
               id="remember-params"
             />
           </Dropdown.Item>
-          <Dropdown.Divider />
+          {/* Hide num snapshots dropdown and group folder input}
+          {/* <Dropdown.Divider />
           <Dropdown.Item>
             <NumSnapshotsDropDown align="end" />
           </Dropdown.Item>
           <Dropdown.Divider />
           <Dropdown.Item>
             <GroupFolderInput />
-          </Dropdown.Item>
+          </Dropdown.Item> */}
         </Dropdown.Menu>
       </Dropdown>
     );
