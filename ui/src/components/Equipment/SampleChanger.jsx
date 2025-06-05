@@ -214,7 +214,7 @@ export default function SampleChanger(props) {
     <Card className="mb-3">
       <Card.Header>Content</Card.Header>
       <Card.Body>
-        <Button variant="outline-secondary" onClick={() => handleRefresh()}>
+        {/* <Button variant="outline-secondary" onClick={() => handleRefresh()}>
           <i className="fas fa-sync" /> Refresh
         </Button>
         <Button
@@ -223,7 +223,7 @@ export default function SampleChanger(props) {
           onClick={scan}
         >
           <i className="fas fa-qrcode" /> Scan all containers
-        </Button>
+        </Button> */}
         <span style={{ marginLeft: '1em' }}>{abortButton}</span>
         {current}
         <div style={{ marginBottom: '1em' }} />
