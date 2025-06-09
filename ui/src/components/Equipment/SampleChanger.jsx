@@ -202,7 +202,7 @@ export default function SampleChanger(props) {
 
   if (props.state === 'MOVING') {
     abortButton = (
-      <Button variant="danger" className={styles.abortButton} onClick={abort}>
+      <Button variant="danger" className={styles.abortButton} onClick={abort} style={{ display: 'none' }}>
         <i className="fas fa-stop" /> Abort
       </Button>
     );
