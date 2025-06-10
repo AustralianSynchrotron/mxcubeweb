@@ -3231,7 +3231,7 @@ resolved_reference = "c410c5a65e5e199915e6919e02824e1fc5d6ffbb"
 
 [[package]]
 name = "mxcubecore"
-version = "1.195.0.16"
+version = "1.195.0.17"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.12"
@@ -3274,8 +3274,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "v1.195.0.16"
-resolved_reference = "6d690d9dd262479e857859eadd89103471f77473"
+reference = "v1.195.0.17"
+resolved_reference = "3030d7a868abebb3f70f62f03ea67da455d4bcd4"
 
 [[package]]
 name = "myst-parser"
@@ -6498,4 +6498,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.8,<3.12"
-content-hash = "e814b3c3e81d348896aadeb195b09c0c01befd3df4ddbb76fea0f6fa9b0f5d2a"
+content-hash = "3873c23bf8dcec7769c244a1c31808dc4d7de99ac3adfae240f5760474def73c"
