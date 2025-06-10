@@ -1138,7 +1138,7 @@ class SampleGridTableContainer extends React.Component {
   renderTaskContextMenuItems() {
     return (
       <>
-        <Dropdown.Divider />
+        {/* <Dropdown.Divider />
         <Dropdown.Header>
           <i className="fas fa-plus" /> Add{' '}
         </Dropdown.Header>
@@ -1158,7 +1158,7 @@ class SampleGridTableContainer extends React.Component {
         </Dropdown.Item>
         <Dropdown.Item onClick={this.props.removeSelectedTasks}>
           Remove Tasks
-        </Dropdown.Item>
+        </Dropdown.Item> */}
       </>
     );
   }
@@ -1166,11 +1166,11 @@ class SampleGridTableContainer extends React.Component {
   renderSampleContextMenu() {
     return (
       <>
-        <Dropdown.Item onClick={this.props.addSelectedSamplesToQueue}>
+        {/* <Dropdown.Item onClick={this.props.addSelectedSamplesToQueue}>
           <span>
             <i className="fas fa-plus" /> Add to Queue
           </span>
-        </Dropdown.Item>
+        </Dropdown.Item> */}
         <Dropdown.Item onClick={this.mountAndCollect}>
           <span>
             <MdFlare glyph="screenshot" /> Mount{' '}
