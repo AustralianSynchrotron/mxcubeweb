@@ -38,12 +38,12 @@ export default class QueueControl extends React.Component {
           },
         ],
         [QUEUE_STOPPED]: [
-          {
-            text: 'Run Queue',
-            class: 'btn-success',
-            action: props.startQueue,
-            key: 1,
-          },
+          // {
+          //   text: 'Run Queue',
+          //   class: 'btn-success',
+          //   action: props.startQueue,
+          //   key: 1,
+          // },
         ],
         [QUEUE_PAUSED]: [
           {

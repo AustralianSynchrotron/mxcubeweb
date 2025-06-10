@@ -637,7 +637,7 @@ class SampleListViewContainer extends React.Component {
             }
           >
             <i className="fas fa-sync-alt" style={{ marginRight: '0.5em' }} />
-            Get Samples
+            Refresh
           </Button>
         </TooltipTrigger>
       );
@@ -794,7 +794,8 @@ class SampleListViewContainer extends React.Component {
               />
             </Col>
           </Row>
-          <Row className="mb-2">
+          {/* Hide Lims Samples}
+          {/* <Row className="mb-2">
             <Col xs={9}>
               <Form.Check
                 type="checkbox"
@@ -808,7 +809,7 @@ class SampleListViewContainer extends React.Component {
             <Col xs={3}>
               <span />
             </Col>
-          </Row>
+          </Row> */}
           <Row className="mt-3 justify-content-end">
             <Col className="align-self-end">
               <Button
@@ -849,7 +850,8 @@ class SampleListViewContainer extends React.Component {
               <Col sm={5} className="d-flex">
                 {this.getSynchronizationDropDownList()}
                 <span style={{ marginLeft: '1.5em' }} />
-                <Button
+                <Button // Hide Create new sample
+                  style={{ display: 'none' }}
                   className="nowrap-style"
                   variant="outline-secondary"
                   onClick={this.showAddSampleForm}
@@ -862,7 +864,8 @@ class SampleListViewContainer extends React.Component {
                   id="clear-samples-tooltip"
                   tooltipContent="Remove all samples from sample list and queue"
                 >
-                  <Button
+                  <Button // Hide Clear sample list
+                    style={{ display: 'none' }}
                     className="nowrap-style"
                     variant="outline-secondary"
                     onClick={this.props.showConfirmClearQueueDialog}
@@ -876,7 +879,7 @@ class SampleListViewContainer extends React.Component {
                   </Button>
                 </TooltipTrigger>
                 <span style={{ marginLeft: '1.5em' }} />
-                <Dropdown>
+                {/* <Dropdown>
                   <Dropdown.Toggle
                     variant="outline-secondary"
                     id="dropdown-basic"
@@ -893,7 +896,7 @@ class SampleListViewContainer extends React.Component {
                       </Dropdown.Item>
                     ))}
                   </Dropdown.Menu>
-                </Dropdown>
+                </Dropdown> */}
               </Col>
               <Col sm={5} className="d-flex me-auto">
                 <Form onSubmit={(evt) => evt.preventDefault()}>
@@ -928,7 +931,8 @@ class SampleListViewContainer extends React.Component {
                   </Form.Group>
                 </Form>
                 <span style={{ marginLeft: '2em' }} />
-                <Button
+                <Button 
+                  style={{ display: 'none' }} // Hide Add Task to Samples
                   variant="outline-secondary"
                   className="all-samples-actions-menu"
                   title="Context Menu to Add DC or Workflow to all filtered Samples Options"
@@ -946,7 +950,8 @@ class SampleListViewContainer extends React.Component {
                 <span style={{ marginLeft: '1em' }} />
                 <QueueSettings />
                 <span style={{ marginLeft: '1em' }} />
-                {this.renderCollectButton()}
+                {/* Hide Collect button}
+                {/* {this.renderCollectButton()} */} 
               </Col>
             </Row>
           </Card.Header>
