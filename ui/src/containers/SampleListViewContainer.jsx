@@ -630,6 +630,10 @@ class SampleListViewContainer extends React.Component {
           tooltipContent={`Synchronise sample list with ${this.props.loginData.limsName[0].name}`}
         >
           <Button
+            // TODO: Hide Refresh button for now
+            // Can be implemented later to show samples from the
+            // robot matrix
+            style={{ display: 'none' }} 
             className="nowrap-style"
             variant="outline-secondary"
             onClick={() =>
