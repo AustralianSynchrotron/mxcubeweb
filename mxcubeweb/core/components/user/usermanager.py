@@ -18,6 +18,8 @@ from mxcubeweb.core.components.component_base import ComponentBase
 from mxcubeweb.core.models.usermodels import User
 from mxcubeweb.core.util.networkutils import is_local_host
 
+HTTP_REQUESTS_TIMEOUT = 10  # Generic timeout for HTTP requests in seconds
+
 
 class BaseUserManager(ComponentBase):
     """Base class for managing user-related operations
@@ -237,6 +239,7 @@ class BaseUserManager(ComponentBase):
                     "grant_type": "refresh_token",
                     "refresh_token": current_user.refresh_token,
                 },
+                timeout=HTTP_REQUESTS_TIMEOUT,
             ).json()
         )
 
@@ -597,6 +600,7 @@ class UserManager(BaseUserManager):
                     "client_secret": self.app.CONFIG.sso.CLIENT_SECRET,
                     "refresh_token": refresh_token,
                 },
+                timeout=HTTP_REQUESTS_TIMEOUT,
             )
 
 
