@@ -1,6 +1,6 @@
 [project]
 name = "mxcubeweb"
-version = "4.379.0"
+version = "4.380.0"
 license = "LGPL-3.0-or-later"
 description = "MXCuBE Web user interface"
 authors = [
