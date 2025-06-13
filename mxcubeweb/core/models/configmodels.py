@@ -35,6 +35,7 @@ class FlaskConfigModel(BaseModel):
         "NONE",
         description="One of the strings ['SIGNED', 'ADHOC', NONE]",
     )
+    SERVER_NAME: str | None = None
 
 
 class SSOConfigModel(BaseModel):
