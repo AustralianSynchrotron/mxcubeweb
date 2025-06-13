@@ -3188,7 +3188,7 @@ resolved_reference = "08fa2be8b89495f6631dc8d88c6291a8c48635f0"
 
 [[package]]
 name = "mx3-beamline-library"
-version = "1.8.3"
+version = "1.8.4"
 description = "Ophyd devices and bluesky plans."
 optional = false
 python-versions = ">=3.11,<3.13"
@@ -3213,7 +3213,7 @@ ophyd = ">=1.9.0,<2.0.0"
 pandas = ">=2.0.2"
 Pillow = ">=10.4.0"
 pydantic = ">=2.7.0,<2.10.6"
-pyepics = ">=3.5.7,<4.0.0"
+pyepics = "3.5.7"
 PyYAML = ">=6.0"
 redis = ">=5.0.1,<6.0.0"
 requests = ">=2.31.0"
@@ -3226,12 +3226,12 @@ as-dependencies = ["as-acquisition-library @ git+https://bitbucket.synchrotron.o
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git"
-reference = "v1.8.3"
-resolved_reference = "c410c5a65e5e199915e6919e02824e1fc5d6ffbb"
+reference = "v1.8.4"
+resolved_reference = "9396bdf2fcc498432c3b8e8caed27eac0024853d"
 
 [[package]]
 name = "mxcubecore"
-version = "1.195.0.17"
+version = "1.195.0.19"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.12"
@@ -3251,7 +3251,7 @@ jsonschema = "^4.17.1"
 lucid3 = "^3.0.0"
 lxml = "^4.9.1"
 matplotlib = "^3.6.2"
-mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v1.8.3", markers = "python_version == \"3.11\""}
+mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v1.8.4", markers = "python_version == \"3.11\""}
 numpy = {version = "^2.0.0", markers = "python_version == \"3.11\""}
 Pillow = "^10.4.0"
 prefect = {version = "3.1.15", optional = true, markers = "python_version >= \"3.10\""}
@@ -3274,8 +3274,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "v1.195.0.17"
-resolved_reference = "3030d7a868abebb3f70f62f03ea67da455d4bcd4"
+reference = "v1.195.0.19"
+resolved_reference = "298df749ac04d58cd49a0f7dbe4269ba4a148c30"
 
 [[package]]
 name = "myst-parser"
@@ -6498,4 +6498,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.8,<3.12"
-content-hash = "3873c23bf8dcec7769c244a1c31808dc4d7de99ac3adfae240f5760474def73c"
+content-hash = "e13345b5c08bf692b918fd8798073bd2d9b94f20d5b99741f75cf6fd15be2cfd"
