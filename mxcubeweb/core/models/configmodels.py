@@ -27,6 +27,7 @@ class FlaskConfigModel(BaseModel):
     PERMANENT_SESSION_LIFETIME: datetime.timedelta
     CERT_KEY: str = Field("", description="Full path to signed certificate key file")
     CERT_PEM: str = Field("", description="Full path to signed certificate pem file")
+    SERVER_NAME: str | None = Field(default=None)
 
     # SIGNED for signed certificate on file
     # ADHOC for flask to generate a certificate,
