@@ -201,6 +201,8 @@ class SampleChanger(ComponentBase):
             sid = self.get_current_sample().get("sampleID", False)
             current_queue = self.app.queue.queue_to_dict()
 
+            sample_order = current_queue.get("sample_order") if current_queue else None
+
             if sample["location"] != "Manual":
                 msg = "Mounting sample: %s (%s)" % (
                     sample["location"],
@@ -208,10 +210,12 @@ class SampleChanger(ComponentBase):
                 )
                 logging.getLogger("user_level_log").info(msg)
 
+                # The sample_order is added to the `load`` input
+                # so that the sample changer can prefetch the next sample
                 if not sc.get_loaded_sample():
-                    res = sc.load(sample["sampleID"], wait=True)
+                    res = sc.load(sample["sampleID"], sample_order, wait=True)
                 elif sc.get_loaded_sample().get_address() != sample["location"]:
-                    res = sc.load(sample["sampleID"], wait=True)
+                    res = sc.load(sample["sampleID"], sample_order, wait=True)
 
                 if res is None:
                     res = True
