@@ -41,7 +41,7 @@ pydantic = ">=2.8.2,<2.11.0"
 PyDispatcher = "^2.0.6"
 pytz = "^2022.6"
 tzlocal = "^4.2"
-mxcubecore =  {git = "https://github.com/AustralianSynchrotron/mxcubecore.git", rev = "v1.195.0.25", extras=["prefect"]}
+mxcubecore =  {git = "https://github.com/AustralianSynchrotron/mxcubecore.git", rev = "sync_prefect_client", extras=["prefect"]}
 bcrypt = "^4.0.1"
 authlib = "^1.3.0"
 
