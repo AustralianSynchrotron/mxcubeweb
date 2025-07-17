@@ -92,6 +92,7 @@ class ServerIO {
 
   connectHwr() {
     this.hwrSocket = io.connect(`/hwr`);
+    console.log(this.hwrSocket.io.uri);
 
     this.hwrSocket.on('connect', () => {
       console.log('hwrSocket connected!'); // eslint-disable-line no-console
@@ -421,6 +422,8 @@ class ServerIO {
     this.hwrSocket.on('harvester_contents_update', () => {
       dispatch(updateHarvesterContents());
     });
+
+    console.log(this.hwrSocket.io.uri);
   }
 
   connectLogging() {
