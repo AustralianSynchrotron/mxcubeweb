@@ -60,14 +60,12 @@ function PlateManipulatorMaintenance() {
         }}
       />
 
-      <ActionField
-        headerMsg={`Actual Plate Barcode is : ${plateBarcode}`}
-        label="Plate Barcode"
-        btnLabel="Set Plate Barcode"
-        onSubmit={(val) => {
-          dispatch(sendCommand('setPlateBarcode', val));
-        }}
-      />
+      <Card className="mb-2">
+        <Card.Header>Plate Barcode</Card.Header>
+        <Card.Body>
+          <span>{plateBarcode}</span>
+        </Card.Body>
+      </Card>
     </>
   );
 }
