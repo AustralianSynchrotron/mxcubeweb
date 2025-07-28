@@ -647,7 +647,7 @@ export default function PlateManipulator(props) {
             </Button>
           </TooltipTrigger>
           <span style={{ marginLeft: '1.5em' }} />
-          <TooltipTrigger
+          {/* <TooltipTrigger
             id="sync-samples-tooltip"
             tooltipContent="Synchronise sample list with CRIMS"
           >
@@ -658,7 +658,7 @@ export default function PlateManipulator(props) {
             >
               <MdSync size="1.5em" /> CRIMS
             </Button>
-          </TooltipTrigger>
+          </TooltipTrigger> */}
         </ButtonToolbar>
       </Col>
       <div className={styles.plate_div} style={cssDisable}>

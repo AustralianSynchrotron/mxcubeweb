@@ -2,7 +2,14 @@ import React, { useState } from 'react';
 import { Button, Card, Form, InputGroup } from 'react-bootstrap';
 
 function ActionField(props) {
-  const { headerMsg, label, inputType = 'text', btnLabel, onSubmit } = props;
+  const {
+    headerMsg,
+    label,
+    inputType = 'text',
+    btnLabel,
+    onSubmit,
+    disabled = false, // Added this to disable the button while a tray is being mounted
+  } = props;
 
   const [inputValue, setInputValue] = useState('');
 
@@ -37,7 +44,11 @@ function ActionField(props) {
                 style={{ width: '13em', flex: 'none' }}
                 onChange={(e) => handleInputChange(e)}
               />
-              <Button type="submit" variant="outline-secondary">
+              <Button
+                type="submit"
+                variant="outline-secondary"
+                disabled={disabled}
+              >
                 {btnLabel}
               </Button>
             </InputGroup>

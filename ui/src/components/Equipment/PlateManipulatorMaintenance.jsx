@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -11,20 +11,32 @@ import styles from './equipment.module.css';
 
 function PlateManipulatorMaintenance() {
   const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
+  const [headerMsg, setHeaderMsg] = useState('');
 
   const { commands, commands_state, message, global_state } = useSelector(
     (state) => state.sampleChangerMaintenance,
   );
-
   const commandGroups = commands.cmds || [];
 
   const scanLimits = global_state.scan_limits
     ? `[ ${global_state.scan_limits.toString().split(',').join(',   ')}]`
     : '';
 
-  const plateBarcode = global_state.plate_info
-    ? global_state.plate_info.plate_barcode.toString()
+  const plateBarcode = commands_state.barcode
+    ? commands_state.barcode.toString()
     : '';
+
+  React.useEffect(() => {
+    setHeaderMsg(`Actual Plate Barcode is : ${plateBarcode}`);
+  }, [plateBarcode]);
+
+  const handleSubmit = (val) => {
+    setLoading(true);
+    dispatch(sendCommand('setPlateBarcode', val))
+      .then(() => setLoading(false))
+      .catch(() => setLoading(false));
+  };
 
   return (
     <>
@@ -50,7 +62,7 @@ function PlateManipulatorMaintenance() {
         </Card>
       )}
 
-      <ActionField
+      {/* <ActionField
         headerMsg={`Omega Motor Dynamic ScanLimits Interval is : ${scanLimits}`}
         label="Desired Scan Speed"
         inputType="number"
@@ -58,15 +70,14 @@ function PlateManipulatorMaintenance() {
         onSubmit={(val) => {
           dispatch(sendCommand('getOmegaMotorDynamicScanLimits', val));
         }}
-      />
+      /> */}
 
       <ActionField
-        headerMsg={`Actual Plate Barcode is : ${plateBarcode}`}
-        label="Plate Barcode"
-        btnLabel="Set Plate Barcode"
-        onSubmit={(val) => {
-          dispatch(sendCommand('setPlateBarcode', val));
-        }}
+        headerMsg={headerMsg}
+        label="Mount tray"
+        btnLabel="Mount"
+        onSubmit={handleSubmit}
+        disabled={loading}
       />
     </>
   );
