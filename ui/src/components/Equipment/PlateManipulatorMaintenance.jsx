@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -11,6 +11,7 @@ import styles from './equipment.module.css';
 
 function PlateManipulatorMaintenance() {
   const dispatch = useDispatch();
+  const [loading, setLoading] = useState(false);
 
   const { commands, commands_state, message, global_state } = useSelector(
     (state) => state.sampleChangerMaintenance,
@@ -25,6 +26,13 @@ function PlateManipulatorMaintenance() {
   const plateBarcode = global_state.plate_info
     ? global_state.plate_info.plate_barcode.toString()
     : '';
+
+  const handleSubmit = (val) => {
+    setLoading(true);
+    dispatch(sendCommand('setPlateBarcode', val))
+      .then(() => setLoading(false))
+      .catch(() => setLoading(false));
+  };
 
   return (
     <>
@@ -64,9 +72,8 @@ function PlateManipulatorMaintenance() {
         headerMsg={`Actual Plate Barcode is : ${plateBarcode}`}
         label="Mount tray"
         btnLabel="Mount"
-        onSubmit={(val) => {
-          dispatch(sendCommand('setPlateBarcode', val));
-        }}
+        onSubmit={handleSubmit}
+        disabled={loading}
       />
     </>
   );
