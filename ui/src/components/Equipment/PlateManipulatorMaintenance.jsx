@@ -12,20 +12,24 @@ import styles from './equipment.module.css';
 function PlateManipulatorMaintenance() {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
+  const [headerMsg, setHeaderMsg] = useState('');
 
   const { commands, commands_state, message, global_state } = useSelector(
     (state) => state.sampleChangerMaintenance,
   );
-
   const commandGroups = commands.cmds || [];
 
   const scanLimits = global_state.scan_limits
     ? `[ ${global_state.scan_limits.toString().split(',').join(',   ')}]`
     : '';
 
-  const plateBarcode = global_state.plate_info
-    ? global_state.plate_info.plate_barcode.toString()
+  const plateBarcode = commands_state.barcode
+    ? commands_state.barcode.toString()
     : '';
+
+  React.useEffect(() => {
+    setHeaderMsg(`Actual Plate Barcode is : ${plateBarcode}`);
+  }, [plateBarcode]);
 
   const handleSubmit = (val) => {
     setLoading(true);
@@ -69,7 +73,7 @@ function PlateManipulatorMaintenance() {
       /> */}
 
       <ActionField
-        headerMsg={`Actual Plate Barcode is : ${plateBarcode}`}
+        headerMsg={headerMsg}
         label="Mount tray"
         btnLabel="Mount"
         onSubmit={handleSubmit}
