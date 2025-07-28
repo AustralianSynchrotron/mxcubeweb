@@ -50,7 +50,7 @@ function PlateManipulatorMaintenance() {
         </Card>
       )}
 
-      <ActionField
+      {/* <ActionField
         headerMsg={`Omega Motor Dynamic ScanLimits Interval is : ${scanLimits}`}
         label="Desired Scan Speed"
         inputType="number"
@@ -58,14 +58,16 @@ function PlateManipulatorMaintenance() {
         onSubmit={(val) => {
           dispatch(sendCommand('getOmegaMotorDynamicScanLimits', val));
         }}
-      />
+      /> */}
 
-      <Card className="mb-2">
-        <Card.Header>Plate Barcode</Card.Header>
-        <Card.Body>
-          <span>{plateBarcode}</span>
-        </Card.Body>
-      </Card>
+      <ActionField
+        headerMsg={`Actual Plate Barcode is : ${plateBarcode}`}
+        label="Mount tray"
+        btnLabel="Mount"
+        onSubmit={(val) => {
+          dispatch(sendCommand('setPlateBarcode', val));
+        }}
+      />
     </>
   );
 }
