@@ -90,7 +90,7 @@ def handle_auto_mount_next(entry):
 
         if not auto_mount and last_gentry:
             msg = "Not mounting next sample automatically (Auto mount next)"
-            logging.getLogger("user_level_log").info(msg)
+            logging.getLogger("HWR").info(msg)
 
 
 def diffractometer_phase_changed(*args):
