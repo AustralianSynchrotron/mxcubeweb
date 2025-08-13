@@ -111,6 +111,8 @@ class SampleView(ComponentBase):
 
         if zoom_motor:
             zoom_motor.connect("stateChanged", self._zoom_changed)
+            # Update the pixels per mm when the value changes
+            zoom_motor.connect("valueChanged", self._zoom_changed)
 
     def _zoom_changed(self, *args, **kwargs):
         ppm = HWR.beamline.diffractometer.get_pixels_per_mm()
