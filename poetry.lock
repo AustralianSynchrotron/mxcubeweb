@@ -3903,7 +3903,7 @@ resolved_reference = "0933859b08ce3509a9aae7e7f0018d3b4d353b7c"
 
 [[package]]
 name = "mx3-beamline-library"
-version = "1.9.7"
+version = "1.9.9"
 description = "Ophyd devices and bluesky plans."
 optional = false
 python-versions = ">=3.11,<3.13"
@@ -3941,12 +3941,12 @@ as-dependencies = ["as-acquisition-library @ git+https://bitbucket.synchrotron.o
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git"
-reference = "v1.9.7"
-resolved_reference = "581c49e33e5aaa58661770974fe53cdb9ff024be"
+reference = "v1.9.9"
+resolved_reference = "8d76a1992b07e401f7ebd7128f8fc6edcd593b17"
 
 [[package]]
 name = "mxcubecore"
-version = "1.195.0.31"
+version = "1.195.0.33"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.12"
@@ -3966,7 +3966,7 @@ jsonschema = "^4.17.1"
 lucid3 = "^3.0.0"
 lxml = "^4.9.1"
 matplotlib = "^3.6.2"
-mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v1.9.7", markers = "python_version == \"3.11\""}
+mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v1.9.9", markers = "python_version == \"3.11\""}
 numpy = {version = "^2.0.0", markers = "python_version == \"3.11\""}
 Pillow = "^10.4.0"
 prefect = {version = "3.1.15", optional = true, markers = "python_version >= \"3.10\""}
@@ -3989,8 +3989,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "v1.195.0.31"
-resolved_reference = "393f43d58ec58e4b424a1bd66388069eaca4f52f"
+reference = "v1.195.0.33"
+resolved_reference = "149cce803cde34401d22877f079ef2ce7bfa8c53"
 
 [[package]]
 name = "myst-parser"
@@ -7628,4 +7628,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.8,<3.12"
-content-hash = "738999541e41226b12bdf891042063adefea28b3d9cef73305aeb8358c0063b2"
+content-hash = "021a8ab57f931c29c38f263657969a5e965893315b68dd48b8f11ba60df79797"
