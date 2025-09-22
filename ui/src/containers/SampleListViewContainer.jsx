@@ -44,7 +44,7 @@ import {
 } from '../actions/queue';
 
 import { showConfirmCollectDialog } from '../actions/queueGUI';
-import { showConfirmClearQueueDialog } from '../actions/general';
+import { showConfirmClearQueueDialog, showConnectionLostDialog } from '../actions/general';
 
 import { showTaskForm } from '../actions/taskForm';
 
@@ -292,12 +292,16 @@ class SampleListViewContainer extends React.Component {
    * @property {Object} loginData
    */
   async syncSamples(lims) {
+    console.log('Synchronising samples with LIMS', lims);
+
     if (Object.keys(this.props.sampleList).length === 0) {
       await this.getSamplesFromSC();
       this.props.syncSamples(lims);
     } else {
       this.props.syncSamples(lims);
     }
+    console.log('llims samples', this.props.sampleList);
+
     this.props.filter({ limsSamples: true });
   }
 
@@ -633,7 +637,7 @@ class SampleListViewContainer extends React.Component {
             // TODO: Hide Refresh button for now
             // Can be implemented later to show samples from the
             // robot matrix
-            style={{ display: 'none' }} 
+            style={{ display: '' }} 
             className="nowrap-style"
             variant="outline-secondary"
             onClick={() =>
