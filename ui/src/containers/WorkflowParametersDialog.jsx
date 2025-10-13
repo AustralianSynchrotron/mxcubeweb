@@ -7,6 +7,7 @@ import {
   showWorkflowParametersDialog,
   submitWorkflowParameters,
 } from '../actions/workflow';
+import { setSampleAttribute } from '../actions/queue';
 
 import styles from './WorkflowParametersDialog.module.css';
 
@@ -14,8 +15,32 @@ function WorkflowParametersDialog() {
   const dispatch = useDispatch();
   const show = useSelector((state) => state.workflow.showDialog);
   const formData = useSelector((state) => state.workflow.formData);
+  const currentSampleID = useSelector((state) => state.queue.currentSampleID);
+  const currentSample = useSelector((state) =>
+    state.sampleGrid.sampleList[state.queue.currentSampleID],
+  );
 
   function submitData(values) {
+    const submitted = values.formData || {};
+    const newSampleName = submitted.sample_name;
+
+    // If the user provided a sample name, update the current sample in the UI
+    if (newSampleName && currentSampleID) {
+      dispatch(setSampleAttribute([currentSampleID], 'sampleName', newSampleName));
+
+      // Keep defaultPrefix in sync if we know the acronym
+      const pa = currentSample?.proteinAcronym || '';
+      if (pa) {
+        dispatch(
+          setSampleAttribute(
+            [currentSampleID],
+            'defaultPrefix',
+            `${pa}-${newSampleName}`,
+          ),
+        );
+      }
+    }
+
     dispatch(submitWorkflowParameters(values.formData));
     dispatch(showWorkflowParametersDialog(null, false));
   }
@@ -24,6 +49,8 @@ function WorkflowParametersDialog() {
     dispatch(submitWorkflowParameters({}));
     dispatch(showWorkflowParametersDialog(null, false));
   }
+  console.log("formData", formData);
+
 
   return (
     <Modal show={show} onHide={handleClose} backdrop="static">
