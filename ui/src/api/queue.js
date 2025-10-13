@@ -85,3 +85,8 @@ export function sendUpdateDependentFields(task_name, field_data) {
     .post({ task_name, field_data }, '/update_dependent_field')
     .safeJson();
 }
+
+// Update a sample's information (e.g., sampleName) on the server using the sample's queue node id
+export function sendUpdateSample(sampleQueueID, data) {
+  return endpoint.put(data, `/${sampleQueueID}`).safeJson();
+}

@@ -2177,16 +2177,48 @@ class Queue(ComponentBase):
     def update_sample(self, sid, params):
         sample_node = HWR.beamline.queue_model.get_node(sid)
 
-        if sample_node:
-            sample_entry = HWR.beamline.queue_manager.get_entry_with_model(sample_node)
-            # TODO: update here the model with the new 'params'
-            # missing lines...
-            sample_entry.set_data_model(sample_node)
-            logging.getLogger("MX3.HWR").info("[QUEUE] sample updated")
-        else:
+        if not sample_node:
             msg = "[QUEUE] Sample with id %s not in queue, can't update" % sid
             logging.getLogger("MX3.HWR").error(msg)
             raise Exception(msg)
+
+        # Update model fields based on provided params
+        new_name = params.get("sampleName")
+        if new_name is not None:
+            safe_name = str(new_name).replace(":", "-")
+            sample_node.set_name(safe_name)
+            sample_node.name = safe_name
+
+        new_acronym = params.get("proteinAcronym")
+        if new_acronym is not None:
+            sample_node.crystals[0].protein_acronym = str(new_acronym)
+
+        # Persist changes in server-side sample list so future queue syncs keep them
+        loc = sample_node.loc_str
+        sample_info = {
+            "sampleID": loc,
+            "queueID": sample_node._node_id,
+            "location": "Manual" if sample_node.free_pin_mode else sample_node.loc_str,
+        }
+
+        if new_name is not None:
+            sample_info["sampleName"] = sample_node.get_name()
+
+        # defaultPrefix: if explicitly provided, keep it; otherwise recompute from current sample
+        if "defaultPrefix" in params and params.get("defaultPrefix") is not None:
+            sample_info["defaultPrefix"] = params.get("defaultPrefix")
+        elif new_name is not None or new_acronym is not None:
+            sample_info["defaultPrefix"] = self.app.lims.get_default_prefix(sample_node)
+
+        if new_name is not None or new_acronym is not None:
+            sample_info["defaultSubDir"] = self.app.lims.get_default_subdir(sample_node)
+
+        self.app.lims.sample_list_update_sample(loc, sample_info)
+
+        # Update the queue entry with the modified data model
+        sample_entry = HWR.beamline.queue_manager.get_entry_with_model(sample_node)
+        sample_entry.set_data_model(sample_node)
+        logging.getLogger("MX3.HWR").info("[QUEUE] sample updated: %s" % sample_info)
 
     def toggle_node(self, node_id):
         node = HWR.beamline.queue_model.get_node(node_id)

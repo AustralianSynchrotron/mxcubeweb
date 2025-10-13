@@ -8,6 +8,7 @@ import {
   submitWorkflowParameters,
 } from '../actions/workflow';
 import { setSampleAttribute } from '../actions/queue';
+import { sendUpdateSample } from '../api/queue';
 
 import styles from './WorkflowParametersDialog.module.css';
 
@@ -16,9 +17,7 @@ function WorkflowParametersDialog() {
   const show = useSelector((state) => state.workflow.showDialog);
   const formData = useSelector((state) => state.workflow.formData);
   const currentSampleID = useSelector((state) => state.queue.currentSampleID);
-  const currentSample = useSelector((state) =>
-    state.sampleGrid.sampleList[state.queue.currentSampleID],
-  );
+  const sampleList = useSelector((state) => state.sampleGrid.sampleList);
 
   function submitData(values) {
     const submitted = values.formData || {};
@@ -26,9 +25,8 @@ function WorkflowParametersDialog() {
 
     // If the user provided a sample name, update the current sample in the UI
     if (newSampleName && currentSampleID) {
+      // Update UI immediately
       dispatch(setSampleAttribute([currentSampleID], 'sampleName', newSampleName));
-
-      // Always show only the sample name for prefix
       dispatch(
         setSampleAttribute(
           [currentSampleID],
@@ -36,6 +34,16 @@ function WorkflowParametersDialog() {
           `${newSampleName}`,
         ),
       );
+
+      // Persist to server: use the sample's queueID so that server-side sample list keeps the new name
+      const currentSample = sampleList[currentSampleID];
+      const queueID = currentSample?.queueID;
+      if (queueID) {
+        // Fire-and-forget; server returns the updated QueueId
+        sendUpdateSample(queueID, { sampleName: newSampleName, defaultPrefix: newSampleName }).catch(() => {
+          // Non-blocking; if it fails, UI still shows updated name but server refresh may overwrite later
+        });
+      }
     }
 
     dispatch(submitWorkflowParameters(values.formData));

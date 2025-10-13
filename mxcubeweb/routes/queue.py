@@ -285,6 +285,10 @@ def init_route(app, server, url_prefix):  # noqa: C901
             app.queue.update_sample(node_id, params)
             resp = jsonify({"QueueId": node_id})
             resp.status_code = 200
+            # Notify clients to update their view of the queue/sample list
+            server.emit(
+                "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
+            )
             return resp
         except Exception:
             return Response(status=409)

@@ -392,15 +392,15 @@ export default class ContextMenu extends React.Component {
         sampleID = currentSampleID;
         sampleData = sampleListState[sampleID];
 
-        if (!sampleData) {
-          // As a last resort, try to find the sample we just created by name
-          const entries = Object.entries(sampleListState || {});
-          const found = entries.find(([, v]) => v.sampleName === sampleName);
-          if (found) {
-            sampleID = found[0];
-            sampleData = found[1];
-          }
-        }
+        // if (!sampleData) {
+        //   // As a last resort, try to find the sample we just created by name
+        //   const entries = Object.entries(sampleListState || {});
+        //   const found = entries.find(([, v]) => v.sampleName === sampleName);
+        //   if (found) {
+        //     sampleID = found[0];
+        //     sampleData = found[1];
+        //   }
+        // }
       } catch {
         this.props.showErrorPanel(
           true,
