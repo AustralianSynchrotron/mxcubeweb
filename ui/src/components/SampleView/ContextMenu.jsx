@@ -3,6 +3,9 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { Dropdown } from 'react-bootstrap';
 import { getLastUsedParameters } from '../Tasks/fields';
+import { store } from '../../store';
+import { addSamplesToList } from '../../actions/sampleGrid';
+import { addSampleAndMount } from '../../actions/queue';
 
 const BESPOKE_TASK_NAMES = new Set([
   'datacollection',
@@ -316,39 +319,98 @@ export default class ContextMenu extends React.Component {
     return options;
   }
 
-  showModal(modalName, extraParams = {}, _shape = null) {
-    const { sampleID, shape, sampleData, defaultParameters } = this.props;
+  // Remove line selections when mixed with points (avoid adding tasks to a line)
+  sanitizeSelection(sid) {
+    if (!Array.isArray(sid)) {
+      return sid;
+    }
+
+    const points = sid.filter((x) => x.match(/P*/u)[0]);
+    const lines = sid.filter((x) => x.match(/L*/u)[0]);
+    const containsPoints = points.length > 0;
+    const containsLine = lines.length > 0;
+
+    if (containsPoints && containsLine) {
+      lines.forEach((x) => {
+        sid.splice(sid.indexOf(x), 1);
+      });
+    }
+
+    return sid;
+  }
+
+  // Compute default subdir with a safe fallback if backend hasn't filled it yet
+  getDefaultSubdir(sampleData) {
+    return (
+      sampleData.defaultSubDir ||
+      `/${sampleData.proteinAcronym}/${sampleData.sampleName}`
+    );
+  }
+
+  async showModal(modalName, extraParams = {}, _shape = null) {
+    const { shape, defaultParameters } = this.props;
+    const { sampleID: sampleIDProp, sampleData: sampleDataProp } = this.props;
+
+    // Work on local variables so we can update them if we auto-create a sample
+    let sampleID = sampleIDProp;
+    let sampleData = sampleDataProp;
 
     if (this.props.clickCentring) {
       this.props.sampleViewActions.stopClickCentring();
       this.props.sampleViewActions.acceptCentring();
     }
 
+    // If no sample is mounted, automatically create and mount a manual sample
     if (!sampleData) {
-      this.props.showErrorPanel(
-        true,
-        'There is no sample mounted, cannot collect data.',
-      );
+      try {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        const sampleName = `manual_${hh}${mm}${ss}`;
+        const proteinAcronym = 'MAN';
 
-      return;
-    }
+        const newSample = {
+          type: 'Sample',
+          sampleName,
+          proteinAcronym,
+          defaultPrefix: `${proteinAcronym}-${sampleName}`,
+          location: 'Manual',
+          loadable: true,
+          tasks: [],
+        };
 
-    const sid = _shape ? _shape.id : shape?.id;
-    if (Array.isArray(sid)) {
-      // we remove any line
-      // in case we have selected (by drawing a box) two points
-      // that already have a line [P1, P2, L1]
-      // we do not want to add a DC/Char to a line
+        // Add locally (assigns a sampleID) and then mount + add to queue
+        store.dispatch(addSamplesToList([newSample]));
+        await store.dispatch(addSampleAndMount(newSample));
 
-      const points = sid.filter((x) => x.match(/P*/u)[0]);
-      const containsPoints = points.length > 0;
-      const lines = sid.filter((x) => x.match(/L*/u)[0]);
-      const containsLine = lines.length > 0;
+        const {
+          queue: { currentSampleID },
+          sampleGrid: { sampleList: sampleListState },
+        } = store.getState();
+        sampleID = currentSampleID;
+        sampleData = sampleListState[sampleID];
 
-      if (containsPoints && containsLine) {
-        lines.map((x) => sid.splice(sid.indexOf(x), 1));
+        if (!sampleData) {
+          // As a last resort, try to find the sample we just created by name
+          const entries = Object.entries(sampleListState || {});
+          const found = entries.find(([, v]) => v.sampleName === sampleName);
+          if (found) {
+            sampleID = found[0];
+            sampleData = found[1];
+          }
+        }
+      } catch {
+        this.props.showErrorPanel(
+          true,
+          'Failed to auto-create and mount a manual sample.',
+        );
+        return;
       }
     }
+
+    const sidRaw = _shape ? _shape.id : shape?.id;
+    const sid = this.sanitizeSelection(sidRaw);
 
     const type =
       modalName === 'Generic' ? extraParams.type : modalName.toLowerCase();
@@ -369,6 +431,9 @@ export default class ContextMenu extends React.Component {
         ]
       : ['none', 0, 0];
 
+    // Fallback if defaultSubDir is not yet populated by backend
+    const defaultSubDir = this.getDefaultSubdir(sampleData);
+
     this.props.showForm(
       modalName,
       [sampleID],
@@ -378,7 +443,7 @@ export default class ContextMenu extends React.Component {
           ...extraParams,
           prefix: sampleData.defaultPrefix,
           name,
-          subdir: `${this.props.groupFolder}${sampleData.defaultSubDir}`,
+          subdir: `${this.props.groupFolder}${defaultSubDir}`,
           cell_count,
           numRows,
           numCols,
