@@ -2189,10 +2189,6 @@ class Queue(ComponentBase):
             sample_node.set_name(safe_name)
             sample_node.name = safe_name
 
-        new_acronym = params.get("proteinAcronym")
-        if new_acronym is not None:
-            sample_node.crystals[0].protein_acronym = str(new_acronym)
-
         # Persist changes in server-side sample list so future queue syncs keep them
         loc = sample_node.loc_str
         sample_info = {
@@ -2203,15 +2199,6 @@ class Queue(ComponentBase):
 
         if new_name is not None:
             sample_info["sampleName"] = sample_node.get_name()
-
-        # defaultPrefix: if explicitly provided, keep it; otherwise recompute from current sample
-        if "defaultPrefix" in params and params.get("defaultPrefix") is not None:
-            sample_info["defaultPrefix"] = params.get("defaultPrefix")
-        elif new_name is not None or new_acronym is not None:
-            sample_info["defaultPrefix"] = self.app.lims.get_default_prefix(sample_node)
-
-        if new_name is not None or new_acronym is not None:
-            sample_info["defaultSubDir"] = self.app.lims.get_default_subdir(sample_node)
 
         self.app.lims.sample_list_update_sample(loc, sample_info)
 

@@ -289,6 +289,7 @@ def init_route(app, server, url_prefix):  # noqa: C901
             server.emit(
                 "queue", {"Signal": "update", "message": "observers"}, namespace="/hwr"
             )
+            
             return resp
         except Exception:
             return Response(status=409)

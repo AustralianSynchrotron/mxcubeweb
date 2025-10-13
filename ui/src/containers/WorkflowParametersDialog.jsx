@@ -27,20 +27,13 @@ function WorkflowParametersDialog() {
     if (newSampleName && currentSampleID) {
       // Update UI immediately
       dispatch(setSampleAttribute([currentSampleID], 'sampleName', newSampleName));
-      dispatch(
-        setSampleAttribute(
-          [currentSampleID],
-          'defaultPrefix',
-          `${newSampleName}`,
-        ),
-      );
 
       // Persist to server: use the sample's queueID so that server-side sample list keeps the new name
       const currentSample = sampleList[currentSampleID];
       const queueID = currentSample?.queueID;
       if (queueID) {
         // Fire-and-forget; server returns the updated QueueId
-        sendUpdateSample(queueID, { sampleName: newSampleName, defaultPrefix: newSampleName }).catch(() => {
+        sendUpdateSample(queueID, { sampleName: newSampleName }).catch(() => {
           // Non-blocking; if it fails, UI still shows updated name but server refresh may overwrite later
         });
       }
