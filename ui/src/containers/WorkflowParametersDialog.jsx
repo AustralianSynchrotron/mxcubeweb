@@ -28,17 +28,14 @@ function WorkflowParametersDialog() {
     if (newSampleName && currentSampleID) {
       dispatch(setSampleAttribute([currentSampleID], 'sampleName', newSampleName));
 
-      // Keep defaultPrefix in sync if we know the acronym
-      const pa = currentSample?.proteinAcronym || '';
-      if (pa) {
-        dispatch(
-          setSampleAttribute(
-            [currentSampleID],
-            'defaultPrefix',
-            `${pa}-${newSampleName}`,
-          ),
-        );
-      }
+      // Always show only the sample name for prefix
+      dispatch(
+        setSampleAttribute(
+          [currentSampleID],
+          'defaultPrefix',
+          `${newSampleName}`,
+        ),
+      );
     }
 
     dispatch(submitWorkflowParameters(values.formData));

@@ -368,13 +368,14 @@ export default class ContextMenu extends React.Component {
         const mm = String(now.getMinutes()).padStart(2, '0');
         const ss = String(now.getSeconds()).padStart(2, '0');
         const sampleName = `manual_${hh}${mm}${ss}`;
-        const proteinAcronym = 'MAN';
+        const proteinAcronym = '';
 
         const newSample = {
           type: 'Sample',
           sampleName,
           proteinAcronym,
-          defaultPrefix: `${proteinAcronym}-${sampleName}`,
+          // Show only the sample name in UI (no acronym prefix)
+          defaultPrefix: sampleName,
           location: 'Manual',
           loadable: true,
           tasks: [],
@@ -422,7 +423,7 @@ export default class ContextMenu extends React.Component {
       type in defaultParameters ? defaultParameters[type].acq_parameters : {};
 
     params = getLastUsedParameters(type, params);
-
+    console.log('last used params', params);
     const [cell_count, numRows, numCols] = shape?.gridData
       ? [
           shape.gridData.numCols * shape.gridData.numRows,
