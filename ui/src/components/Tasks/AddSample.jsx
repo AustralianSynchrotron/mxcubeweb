@@ -50,7 +50,9 @@ function AddSample() {
       try {
         setLoading(true);
         const resp = await fetchLabsWithProjects().catch(() => []);
-        if (!mounted) return;
+        if (!mounted) {
+          return;
+        }
 
         // Normalize labs and nested projects into consistent shape
         const labsNorm = [];
@@ -71,7 +73,9 @@ function AddSample() {
         setLabs(labsNorm);
         setProjectsByLab(projMap);
       } finally {
-        mounted && setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
     loadLists();
@@ -120,12 +124,10 @@ function AddSample() {
         dispatch(showList('current'));
       }
     } catch (error) {
-      const message =
-        error?.response?.headers?.get?.('message') ||
-        error?.message ||
-        'Failed to create sample in LIMS';
-      dispatch(showErrorPanel(true, message));
-      return;
+      const base = 'Failed to create sample in LIMS';
+      const headerMsg = error?.response?.headers?.get?.('message');
+      const combined = `${base}: ${String(headerMsg)}`;
+      dispatch(showErrorPanel(true, String(combined)));
     }
   }
 

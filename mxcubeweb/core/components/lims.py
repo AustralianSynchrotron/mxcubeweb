@@ -323,7 +323,7 @@ class Lims(ComponentBase):
 
     def _get_epn_string(self) -> str:
         """
-        Gets the EPN string from Redis
+        [ANSTO] Gets the EPN string from Redis
 
         Returns
         -------
@@ -343,8 +343,8 @@ class Lims(ComponentBase):
 
     def _get_labs_with_projects(self) -> dict[str, list[tuple[str, int]]]:
         """
-        Fetch a dictionary mapping lab names to a list of (project_name, project_id)
-        tuples for active projects from the data layer.
+        [ANSTO] Get a dictionary mapping lab names to a list of (project_name, project_id)
+        tuples for projects from the data layer.
 
         Returns
         -------
@@ -416,7 +416,7 @@ class Lims(ComponentBase):
 
     def get_labs_with_projects(self) -> dict[str, list[tuple[str, int]]]:
         """
-        Build hierarchical project paths per lab including subprojects.
+        [ANSTO] Build project paths per lab including sub-projects.
 
         Returns
         -------
@@ -473,7 +473,7 @@ class Lims(ComponentBase):
     
     def add_hand_mounted_sample(self, project_id: int, sample_name: str) -> int:
         """
-        Adds a hand-mounted sample to the LIMS.
+        [ANSTO] Adds a hand-mounted sample to the database.
 
         Args:
             sample_dict: A dictionary with the properties for the entry.
@@ -523,6 +523,10 @@ class Lims(ComponentBase):
                 logging.getLogger("user_level_log").error(
                     f"Failed to add hand-mounted sample to the data layer API: {response.text}"
                 )
-                raise ValueError("Failed to add hand-mounted sample to the LIMS")
+                try:
+                    msg = response.json().get("detail", "")
+                except Exception:
+                    msg = response.text
+                raise ValueError(msg)
             return response.json()["id"]
         
