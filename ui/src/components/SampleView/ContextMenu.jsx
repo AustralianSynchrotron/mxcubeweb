@@ -363,18 +363,13 @@ export default class ContextMenu extends React.Component {
     // If no sample is mounted, automatically create and mount a manual sample
     if (!sampleData) {
       try {
-        const now = new Date();
-        const hh = String(now.getHours()).padStart(2, '0');
-        const mm = String(now.getMinutes()).padStart(2, '0');
-        const ss = String(now.getSeconds()).padStart(2, '0');
-        const sampleName = `manual_${hh}${mm}${ss}`;
+        const sampleName = '';
         const proteinAcronym = '';
 
         const newSample = {
           type: 'Sample',
           sampleName,
           proteinAcronym,
-          // Show only the sample name in UI (no acronym prefix)
           defaultPrefix: sampleName,
           location: 'Manual',
           loadable: true,

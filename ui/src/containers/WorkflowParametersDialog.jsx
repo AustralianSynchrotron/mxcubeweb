@@ -38,7 +38,6 @@ function WorkflowParametersDialog() {
         });
       }
     }
-
     dispatch(submitWorkflowParameters(values.formData));
     dispatch(showWorkflowParametersDialog(null, false));
   }

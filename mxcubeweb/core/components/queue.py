@@ -422,7 +422,7 @@ class Queue(ComponentBase):
         parameters["path"] = parameters["directory"]
 
         parameters["subdir"] = os.path.join(
-            *parameters["path"].split(HWR.beamline.session.raw_data_folder_name)[1:]
+            *parameters["path"].split(HWR.beamline.session.raw_data_folder_name)
         ).lstrip("/")
 
         pt = node.path_template
@@ -1232,6 +1232,7 @@ class Queue(ComponentBase):
         beamline_params["sample_lims_id"] = sample_model.lims_id
         beamline_params["beamline"] = HWR.beamline.session.endstation_name
         beamline_params["shape"] = params["shape"]
+        beamline_params["sample_name"] = sample_model.name
 
         params_list = list(
             map(
