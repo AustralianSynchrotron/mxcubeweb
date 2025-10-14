@@ -341,15 +341,14 @@ class Lims(ComponentBase):
                 raise ValueError("EPN string is not set in Redis")
             return epn_string
 
-    def get_labs_with_projects(self) -> dict[str, list[tuple[str, int]]]:
+    def _get_labs_with_projects(self) -> dict[str, list[tuple[str, int]]]:
         """
-        Call the data layer api to get a dictionary mapping lab names
-        to a list of (project_name, project_id) tuples.
+        Fetch a dictionary mapping lab names to a list of (project_name, project_id)
+        tuples for active projects from the data layer.
 
         Returns
         -------
         dict[str, list[tuple[str, int]]]
-            A dictionary mapping lab names to a list of (project_name, project_id) tuples.
         """
         epn = self._get_epn_string()
 
@@ -414,6 +413,63 @@ class Lims(ComponentBase):
                     (item["name"], item["id"]) for item in data
                 ]
         return labs_with_projects
+
+    def get_labs_with_projects(self) -> dict[str, list[tuple[str, int]]]:
+        """
+        Build hierarchical project paths per lab including subprojects.
+
+        Returns
+        -------
+        dict[str, list[tuple[str, int]]]
+            Mapping of lab name to list of (project_path, project_id) tuples.
+        """
+        labs_with_projects = self._get_labs_with_projects()
+        lab_names = sorted(labs_with_projects.keys(), key=str.casefold)
+
+        # Cache for later potential use
+        self.project_id_lab_name_map: dict[str, list[tuple[str, int]]] = {}
+
+        def build_paths(project: dict, prefix: str | None = None) -> list[tuple[str, int]]:
+            """Build (path, id) from a project that can contain a list of children"""
+            name = project.get("name", "")
+            proj_id = project.get("id")
+            if not name or proj_id is None:
+                return []
+            path = f"{prefix}/{name}" if prefix else name
+            paths: list[tuple[str, int]] = [(path, proj_id)]
+            for child in project.get("children", []) or []:
+                paths.extend(build_paths(child, path))
+            return paths
+
+        with httpx.Client() as client:
+            for lab_name in lab_names:
+                self.project_id_lab_name_map[lab_name] = []
+                for project_name, project_id in labs_with_projects[lab_name]:
+                    try:
+                        r = client.get(
+                            urljoin(
+                                settings.DATA_LAYER_API,
+                                f"projects/{project_id}?include_children=true&include_parents=false",
+                            )
+                        )
+                        if r.status_code == HTTPStatus.OK:
+                            node = r.json()
+                            self.project_id_lab_name_map[lab_name].extend(
+                                build_paths(node)
+                            )
+                        else:
+                            self.project_id_lab_name_map[lab_name].append(
+                                (project_name, project_id)
+                            )
+                    except Exception as e:
+                        logging.getLogger("HWR").warning(
+                            f"Failed to build path for project id {project_id}: {e}"
+                        )
+                        self.project_id_lab_name_map[lab_name].append(
+                            (project_name, project_id)
+                        )
+
+        return self.project_id_lab_name_map
     
     def add_hand_mounted_sample(self, project_id: int, sample_name: str) -> int:
         """

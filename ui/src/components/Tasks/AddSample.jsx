@@ -21,7 +21,7 @@ function getSampleData(params) {
     type: 'Sample',
     // Use project name (if provided) as prefix; fallback to sample name
     defaultPrefix: params.projectName
-      ? `${params.projectName}-${params.sampleName}`
+      ? `${String(params.projectName).replaceAll('/', '-')}-${params.sampleName}`
       : params.sampleName,
     location: 'Manual',
     loadable: true,
