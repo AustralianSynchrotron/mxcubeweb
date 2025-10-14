@@ -63,6 +63,30 @@ def init_route(app, server, url_prefix):  # noqa: C901
         """
         return jsonify({"Proposal": app.lims.get_proposal_info()})
 
+    # Dummy endpoints to provide lab and project lists for UI dropdowns.
+    # Replace these with actual calls to your LIMS or DB when ready.
+    @bp.route("/labs", methods=["GET"])
+    @server.restrict
+    def get_labs():
+        return jsonify(
+            [
+                {"id": "Lab A", "name": "Lab A"},
+                {"id": "Lab B", "name": "Lab B"},
+                {"id": "Lab C", "name": "Lab C"},
+            ]
+        )
+
+    @bp.route("/projects", methods=["GET"])
+    @server.restrict
+    def get_projects():
+        return jsonify(
+            [
+                {"id": "Project X", "name": "Project X"},
+                {"id": "Project Y", "name": "Project Y"},
+                {"id": "Project Z", "name": "Project Z"},
+            ]
+        )
+
     def run_get_result_script(script_name, url):
         return check_output(["node", script_name, url], close_fds=True)
 
