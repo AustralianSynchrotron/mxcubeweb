@@ -113,6 +113,38 @@ def init_route(app, server, url_prefix):  # noqa: C901
                 ]
             )
 
+    @bp.route("/hand_mounted_sample", methods=["POST"])
+    @server.restrict
+    def create_hand_mounted_sample():
+        """Create a hand-mounted sample in the LIMS.
+
+        Request JSON:
+          { "project_id": int, "sample_name": str }
+
+        Response JSON:
+          { "id": int }
+        """
+        try:
+            body = request.get_json(force=True) or {}
+            project_id = body.get("project_id")
+            sample_name = body.get("sample_name")
+            if not project_id or not sample_name:
+                return (
+                    "Missing 'project_id' or 'sample_name'",
+                    409,
+                    {"Content-Type": "application/json", "message": "Missing required fields"},
+                )
+
+            sample_id = app.lims.add_hand_mounted_sample(project_id, sample_name)
+            return jsonify({"id": sample_id})
+        except Exception as ex:
+            logging.getLogger("MX3.HWR").error(str(ex))
+            return (
+                "Could not create hand-mounted sample",
+                409,
+                {"Content-Type": "application/json", "message": str(ex)},
+            )
+
     # Note: Labs and projects are provided via /lims/labs_with_projects.
 
     def run_get_result_script(script_name, url):

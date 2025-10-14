@@ -7,7 +7,9 @@ import { showList } from '../../actions/queueGUI';
 import { useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { hideTaskParametersForm } from '../../actions/taskForm';
+import { showErrorPanel } from '../../actions/general';
 import { fetchLabsWithProjects } from '../../api/labsWithProjects';
+import { createHandMountedSample } from '../../api/handmount';
 
 const REQUIRED_MSG = 'This field is required';
 const PATTERN = /^[\w+:-]*$/u;
@@ -86,15 +88,44 @@ function AddSample() {
   }, [selectedLab, setValue]);
 
   async function addAndMount(params) {
-    const sampleData = getSampleData(params);
-    dispatch(addSamplesToList([sampleData]));
-    dispatch(hideTaskParametersForm());
+    // First, create the hand-mounted sample in LIMS
+    try {
+      // Map selected names to IDs for LIMS call
+      const project = (projectsByLab[params.labName] || []).find(
+        (p) => p.name === params.projectName,
+      );
+      const projectId = project?.id;
+      if (!projectId) {
+        throw new Error('No project selected or project not found for selected lab');
+      }
 
-    await dispatch(addSampleAndMount(sampleData));
+      const limsSample = await createHandMountedSample({
+        project_id: projectId,
+        sample_name: params.sampleName,
+      });
+      // Optionally attach created LIMS sample id to sample data
+      const sampleData = getSampleData({
+        ...params,
+        projectId,
+        limsID: limsSample?.id,
+      });
 
-    if (pathname === '/' || pathname === '/datacollection') {
-      // Switch to mounted sample tab
-      dispatch(showList('current'));
+      dispatch(addSamplesToList([sampleData]));
+      dispatch(hideTaskParametersForm());
+
+      await dispatch(addSampleAndMount(sampleData));
+
+      if (pathname === '/' || pathname === '/datacollection') {
+        // Switch to mounted sample tab
+        dispatch(showList('current'));
+      }
+    } catch (error) {
+      const message =
+        error?.response?.headers?.get?.('message') ||
+        error?.message ||
+        'Failed to create sample in LIMS';
+      dispatch(showErrorPanel(true, message));
+      return;
     }
   }
 
