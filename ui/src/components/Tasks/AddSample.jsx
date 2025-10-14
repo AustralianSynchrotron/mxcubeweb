@@ -7,8 +7,7 @@ import { showList } from '../../actions/queueGUI';
 import { useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { hideTaskParametersForm } from '../../actions/taskForm';
-import { fetchLabs } from '../../api/labs';
-import { fetchProjects } from '../../api/projects';
+import { fetchLabsWithProjects } from '../../api/labsWithProjects';
 
 const REQUIRED_MSG = 'This field is required';
 const PATTERN = /^[\w+:-]*$/u;
@@ -29,10 +28,10 @@ function getSampleData(params) {
 }
 
 function AddSample() {
-  const { register, formState, handleSubmit, setFocus } = useForm();
+  const { register, formState, handleSubmit, setFocus, watch, setValue } = useForm();
   const { isSubmitted, errors } = formState;
   const [labs, setLabs] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [projectsByLab, setProjectsByLab] = useState({});
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -48,22 +47,27 @@ function AddSample() {
     async function loadLists() {
       try {
         setLoading(true);
-        const [labsResp, projectsResp] = await Promise.all([
-          fetchLabs().catch(() => []),
-          fetchProjects().catch(() => []),
-        ]);
+        const resp = await fetchLabsWithProjects().catch(() => []);
+        if (!mounted) return;
 
-        if (mounted) {
-          // Normalize to array of { id, name }
-          const toPairs = (arr) =>
-            (Array.isArray(arr) ? arr : []).map((it) =>
-              typeof it === 'string'
-                ? { id: it, name: it }
-                : { id: it.id ?? it.value ?? it.name, name: it.name ?? it.label ?? it.id },
-            );
-          setLabs(toPairs(labsResp));
-          setProjects(toPairs(projectsResp));
-        }
+        // Normalize labs and nested projects into consistent shape
+        const labsNorm = [];
+        const projMap = {};
+        const toPair = (it) =>
+          typeof it === 'string'
+            ? { id: it, name: it }
+            : { id: it.id ?? it.value ?? it.name, name: it.name ?? it.label ?? it.id };
+
+        const dataArr = Array.isArray(resp) ? resp : [];
+        dataArr.forEach((lab) => {
+          const labPair = toPair(lab);
+          labsNorm.push(labPair);
+          const projects = Array.isArray(lab.projects) ? lab.projects : [];
+          projMap[labPair.name] = projects.map(toPair);
+        });
+
+        setLabs(labsNorm);
+        setProjectsByLab(projMap);
       } finally {
         mounted && setLoading(false);
       }
@@ -73,6 +77,13 @@ function AddSample() {
       mounted = false;
     };
   }, []);
+
+  const selectedLab = watch('labName');
+
+  // When lab changes, clear project selection if it no longer matches
+  useEffect(() => {
+    setValue('projectName', '');
+  }, [selectedLab, setValue]);
 
   async function addAndMount(params) {
     const sampleData = getSampleData(params);
@@ -160,11 +171,16 @@ function AddSample() {
                 isValid={isSubmitted && !errors.projectName}
                 isInvalid={isSubmitted && !!errors.projectName}
                 defaultValue=""
+                disabled={!selectedLab}
               >
                 <option value="" disabled>
-                  {loading ? 'Loading projects…' : 'Select a project'}
+                  {!selectedLab
+                    ? 'Select a lab first'
+                    : loading
+                      ? 'Loading projects…'
+                      : 'Select a project'}
                 </option>
-                {projects.map((p) => (
+                {(projectsByLab[selectedLab] || []).map((p) => (
                   <option key={p.id} value={p.name}>
                     {p.name}
                   </option>

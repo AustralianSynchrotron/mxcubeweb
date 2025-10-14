@@ -63,6 +63,56 @@ def init_route(app, server, url_prefix):  # noqa: C901
         """
         return jsonify({"Proposal": app.lims.get_proposal_info()})
 
+    @bp.route("/labs_with_projects", methods=["GET"])
+    @server.restrict
+    def get_labs_with_projects():
+        """Return labs with their associated projects from LIMS.
+
+        Expected shape (example):
+        [
+            {"id": "Lab A", "name": "Lab A", "projects": [
+                {"id": "Project X", "name": "Project X"}, ...
+            ]},
+            ...
+        ]
+        """
+        try:
+            data = app.lims.get_labs_with_projects()
+            # Transform dict[str, list[tuple[str, int]]] ->
+            # [{ id, name, projects: [{ id, name }] }]
+            result = []
+            for lab_name, projects in (data or {}).items():
+                lab_obj = {
+                    "id": lab_name,
+                    "name": lab_name,
+                    "projects": [
+                        {"id": pid, "name": pname} for pname, pid in projects
+                    ],
+                }
+                result.append(lab_obj)
+            return jsonify(result)
+        except Exception:
+            # Safe fallback so UI remains usable during integration
+            return jsonify(
+                [
+                    {
+                        "id": "Lab A",
+                        "name": "Lab A",
+                        "projects": [
+                            {"id": "Project X", "name": "Project X"},
+                            {"id": "Project Y", "name": "Project Y"},
+                        ],
+                    },
+                    {
+                        "id": "Lab B",
+                        "name": "Lab B",
+                        "projects": [
+                            {"id": "Project Z", "name": "Project Z"},
+                        ],
+                    },
+                ]
+            )
+
     # Dummy endpoints to provide lab and project lists for UI dropdowns.
     # Replace these with actual calls to your LIMS or DB when ready.
     @bp.route("/labs", methods=["GET"])

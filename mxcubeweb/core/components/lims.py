@@ -12,6 +12,11 @@ from mxcubecore.model.lims_session import LimsSessionManager
 
 from mxcubeweb.core.components.component_base import ComponentBase
 from mxcubeweb.core.util import fsutils
+from mxcubecore.configuration.ansto.config import settings
+from mxcubecore.HardwareObjects.ANSTO.redis_utils import get_redis_connection
+import httpx
+from http import HTTPStatus
+from urllib.parse import urljoin
 
 VALID_SAMPLE_NAME_REGEXP = re.compile("^[a-zA-Z0-9:+_-]+$")
 
@@ -315,3 +320,153 @@ class Lims(ComponentBase):
                 self.sample_list_sync_sample(sample_info)
 
         return self.sample_list_get()
+
+    def _get_epn_string(self) -> str:
+        """
+        Gets the EPN string from Redis
+
+        Returns
+        -------
+        str
+            The EPN string
+
+        Raises
+        ------
+        QueueExecutionException
+            An exception if the EPN string is not set in Redis
+        """
+        with get_redis_connection() as redis_connection:
+            epn_string: str | None = redis_connection.get("epn")
+            if epn_string is None:
+                raise ValueError("EPN string is not set in Redis")
+            return epn_string
+
+    def get_labs_with_projects(self) -> dict[str, list[tuple[str, int]]]:
+        """
+        Call the data layer api to get a dictionary mapping lab names
+        to a list of (project_name, project_id) tuples.
+
+        Returns
+        -------
+        dict[str, list[tuple[str, int]]]
+            A dictionary mapping lab names to a list of (project_name, project_id) tuples.
+        """
+        epn = self._get_epn_string()
+
+        labs_with_projects: dict[str, list[tuple[str, int]]] = {}
+        with httpx.Client() as client:
+            visit_response = client.get(
+                urljoin(
+                    settings.DATA_LAYER_API,
+                    f"visits?filter_by_identifier_startswith={epn}",
+                )
+            )
+            if visit_response.status_code != HTTPStatus.OK:
+                logging.getLogger("user_level_log").warning(
+                    f"Failed to get visit info from the data layer API: {visit_response.text}"
+                )
+                return labs_with_projects
+
+            visit_response_json = visit_response.json()
+            if len(visit_response_json) == 0:
+                logging.getLogger("user_level_log").error(
+                    f"No visit found starting with identifier {epn}"
+                )
+                return labs_with_projects
+            elif len(visit_response_json) > 1:
+                logging.getLogger("user_level_log").error(
+                    f"Multiple visits ({len(visit_response_json)}) found with identifier {epn}"
+                )
+                return labs_with_projects
+
+            visit_id = visit_response_json[0]["id"]
+
+            lab_response = client.get(
+                settings.DATA_LAYER_API + f"/visits/{visit_id}/labs"
+            )
+            if lab_response.status_code != HTTPStatus.OK:
+                logging.getLogger("user_level_log").warning(
+                    f"Failed to get lab info from the data layer API: {lab_response.text}"
+                )
+
+            lab_ids = [lab["id"] for lab in lab_response.json()]
+            for lab in lab_ids:
+                lab_response = client.get(settings.DATA_LAYER_API + f"/labs/{lab}")
+                if lab_response.status_code != HTTPStatus.OK:
+                    logging.getLogger("user_level_log").warning(
+                        f"Failed to get lab info from the data layer API: {lab_response.text}"
+                    )
+                    continue
+                lab_name = lab_response.json()["name"]
+
+                response = client.get(
+                    settings.DATA_LAYER_API
+                    + f"/projects?only_active=true&filter_by_lab={lab}"
+                )
+                if response.status_code != HTTPStatus.OK:
+                    logging.getLogger("user_level_log").warning(
+                        f"Failed to get project names from the data layer API: {response.text}"
+                    )
+                    continue
+
+                data = response.json()
+                labs_with_projects[lab_name] = [
+                    (item["name"], item["id"]) for item in data
+                ]
+        return labs_with_projects
+    
+    def add_hand_mounted_sample(self, project_id: int, sample_name: str) -> int:
+        """
+        Adds a hand-mounted sample to the LIMS.
+
+        Args:
+            sample_dict: A dictionary with the properties for the entry.
+        """
+        epn = self._get_epn_string()
+
+        with httpx.Client() as client:
+            visit_response = client.get(
+                urljoin(
+                    settings.DATA_LAYER_API,
+                    f"/visits?filter_by_identifier_startswith={epn}",
+                )
+            )
+            if visit_response.status_code != HTTPStatus.OK:
+                logging.getLogger("user_level_log").warning(
+                    f"Failed to get visit info from the data layer API: {visit_response.text}"
+                )
+                raise ValueError("Failed to get visit info from the LIMS")
+            
+            visit_response_json = visit_response.json()
+            if len(visit_response_json) == 0:
+                logging.getLogger("user_level_log").error(
+                    f"No visit found starting with identifier {epn}"
+                )
+                raise ValueError("No visit found in the LIMS")
+            elif len(visit_response_json) > 1:
+                logging.getLogger("user_level_log").error(
+                    f"Multiple visits ({len(visit_response_json)}) found with identifier {epn}"
+                )
+                raise ValueError("Multiple visits found in the LIMS")
+            visit_id = visit_response_json[0]["id"]
+
+            sample_dict = {
+                "name": sample_name,
+                "description": "Best sample in the world",
+                "notes": "We like chocolate",
+                "type": "sample_handmount",
+                "project_id": project_id,
+                "visit_id": visit_id
+                }
+
+            response = client.post(
+                settings.DATA_LAYER_API + "/samples/handmount",
+                json=sample_dict,
+            )
+            if response.status_code != HTTPStatus.CREATED:
+                logging.getLogger("user_level_log").error(
+                    f"Failed to add hand-mounted sample to the data layer API: {response.text}"
+                )
+                raise ValueError("Failed to add hand-mounted sample to the LIMS")
+            return response.json()["id"]
+        
