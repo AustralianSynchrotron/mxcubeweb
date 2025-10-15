@@ -54,20 +54,12 @@ function AddSample() {
           return;
         }
 
-        // Normalize labs and nested projects into consistent shape
-        const labsNorm = [];
-        const projMap = {};
-        const toPair = (it) =>
-          typeof it === 'string'
-            ? { id: it, name: it }
-            : { id: it.id ?? it.value ?? it.name, name: it.name ?? it.label ?? it.id };
-
+        // Backend returns payload: [{ id, name, projects: [{ id, name }] }]
         const dataArr = Array.isArray(resp) ? resp : [];
-        dataArr.forEach((lab) => {
-          const labPair = toPair(lab);
-          labsNorm.push(labPair);
-          const projects = Array.isArray(lab.projects) ? lab.projects : [];
-          projMap[labPair.name] = projects.map(toPair);
+        const labsNorm = dataArr.map(({ id, name }) => ({ id, name }));
+        const projMap = {};
+        dataArr.forEach(({ name, projects }) => {
+          projMap[name] = Array.isArray(projects) ? projects : [];
         });
 
         setLabs(labsNorm);
@@ -86,7 +78,7 @@ function AddSample() {
 
   const selectedLab = watch('labName');
 
-  // When lab changes, clear project selection if it no longer matches
+  // When lab changes, clear project selection
   useEffect(() => {
     setValue('projectName', '');
   }, [selectedLab, setValue]);
