@@ -854,8 +854,7 @@ class SampleListViewContainer extends React.Component {
               <Col sm={5} className="d-flex">
                 {this.getSynchronizationDropDownList()}
                 <span style={{ marginLeft: '1.5em' }} />
-                <Button // Hide Create new sample
-                  style={{ display: 'none' }}
+                <Button
                   className="nowrap-style"
                   variant="outline-secondary"
                   onClick={this.showAddSampleForm}
