@@ -63,29 +63,61 @@ def init_route(app, server, url_prefix):  # noqa: C901
         """
         return jsonify({"Proposal": app.lims.get_proposal_info()})
 
-    # Dummy endpoints to provide lab and project lists for UI dropdowns.
-    # Replace these with actual calls to your LIMS or DB when ready.
-    @bp.route("/labs", methods=["GET"])
+    @bp.route("/labs_with_projects", methods=["GET"])
     @server.restrict
-    def get_labs():
-        return jsonify(
-            [
-                {"id": "Lab A", "name": "Lab A"},
-                {"id": "Lab B", "name": "Lab B"},
-                {"id": "Lab C", "name": "Lab C"},
-            ]
-        )
+    def get_labs_with_projects():
+        """Return labs with their associated projects from LIMS.
 
-    @bp.route("/projects", methods=["GET"])
+        Expected shape:
+        [
+            {"id": "Lab A", "name": "Lab A", "projects": [
+                {"id": "Project X", "name": "Project X"}, ...
+            ]},
+        ]
+        """
+        try:
+            data = app.lims.get_labs_with_projects()
+            return jsonify(data or [])
+        except Exception as ex:
+            logging.getLogger("MX3.HWR").warning(
+                f"Failed to load labs_with_projects: {ex}"
+            )
+            return jsonify([])
+
+    @bp.route("/hand_mounted_sample", methods=["POST"])
     @server.restrict
-    def get_projects():
-        return jsonify(
-            [
-                {"id": "Project X", "name": "Project X"},
-                {"id": "Project Y", "name": "Project Y"},
-                {"id": "Project Z", "name": "Project Z"},
-            ]
-        )
+    def create_hand_mounted_sample():
+        """Create a hand-mounted sample in the LIMS.
+
+        Request JSON:
+          { "project_id": int, "sample_name": str }
+
+        Response JSON:
+          { "id": int }
+        """
+        try:
+            body = request.get_json(force=True) or {}
+            project_id = body.get("project_id")
+            sample_name = body.get("sample_name")
+            if not project_id or not sample_name:
+                return (
+                    "Missing 'project_id' or 'sample_name'",
+                    409,
+                    {
+                        "Content-Type": "application/json",
+                        "message": "Missing required fields",
+                    },
+                )
+
+            sample_id = app.lims.add_hand_mounted_sample(project_id, sample_name)
+            return jsonify({"id": sample_id})
+        except Exception as ex:
+            logging.getLogger("MX3.HWR").error(str(ex))
+            return (
+                "Could not create hand-mounted sample",
+                409,
+                {"Content-Type": "application/json", "message": str(ex)},
+            )
 
     def run_get_result_script(script_name, url):
         return check_output(["node", script_name, url], close_fds=True)

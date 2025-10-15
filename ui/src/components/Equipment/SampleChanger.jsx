@@ -217,7 +217,7 @@ export default function SampleChanger(props) {
         <Button style={{ display: 'none' }} variant="outline-secondary" onClick={() => handleRefresh()}>
           <i className="fas fa-sync" /> Refresh
         </Button>
-    
+
         <Button
           style={{ display: 'none' }} // style={{ marginLeft: '1em' }}
           variant="outline-secondary"

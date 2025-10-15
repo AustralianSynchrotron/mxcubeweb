@@ -4,9 +4,14 @@ import logging
 import math
 import re
 import sys
+from http import HTTPStatus
+from urllib.parse import urljoin
 
+import httpx
 from flask_login import current_user
 from mxcubecore import HardwareRepository as HWR
+from mxcubecore.configuration.ansto.config import settings
+from mxcubecore.HardwareObjects.ANSTO.redis_utils import get_redis_connection
 from mxcubecore.model import queue_model_objects as qmo
 from mxcubecore.model.lims_session import LimsSessionManager
 
@@ -315,3 +320,311 @@ class Lims(ComponentBase):
                 self.sample_list_sync_sample(sample_info)
 
         return self.sample_list_get()
+
+    def _get_epn_string(self) -> str:
+        """
+        [ANSTO] Gets the EPN string from Redis
+
+        Returns
+        -------
+        str
+            The EPN string
+
+        Raises
+        ------
+        QueueExecutionException
+            An exception if the EPN string is not set in Redis
+        """
+        with get_redis_connection() as redis_connection:
+            epn_string: str | None = redis_connection.get("epn")
+            if epn_string is None:
+                raise ValueError("EPN string is not set in Redis")
+            return epn_string
+
+    def _get_visit_id_for_epn(self, client: httpx.Client, epn: str) -> int | None:
+        """
+        [ANSTO] Gets the visit id for a given EPN string
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client to use for the request
+        epn : str
+            The EPN string to filter by
+
+        Returns
+        -------
+        int | None
+            The visit ID if found, None otherwise
+        """
+        r = client.get(
+            urljoin(
+                settings.DATA_LAYER_API, f"visits?filter_by_identifier_startswith={epn}"
+            )
+        )
+        if r.status_code != HTTPStatus.OK:
+            logging.getLogger("user_level_log").warning(
+                f"Failed to get visit info from the data layer API: {r.text}"
+            )
+            return None
+        data = r.json()
+        if len(data) == 0:
+            logging.getLogger("user_level_log").error(
+                f"No visit found starting with identifier {epn}"
+            )
+            return None
+        if len(data) > 1:
+            logging.getLogger("user_level_log").error(
+                f"Multiple visits ({len(data)}) found with identifier {epn}"
+            )
+            return None
+        return data[0]["id"]
+
+    def _get_lab_ids_for_visit(self, client: httpx.Client, visit_id: int) -> list[int]:
+        """
+        [ANSTO] Gets the lab IDs associated with a visit
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client
+        visit_id : int
+            The visit id
+
+        Returns
+        -------
+        list[int]
+            The list of lab IDs associated with the visit
+        """
+        r = client.get(urljoin(settings.DATA_LAYER_API, f"visits/{visit_id}/labs"))
+        if r.status_code != HTTPStatus.OK:
+            logging.getLogger("user_level_log").warning(
+                f"Failed to get lab info from the data layer API: {r.text}"
+            )
+            return []
+        try:
+            return [lab["id"] for lab in r.json()]
+        except Exception:
+            logging.getLogger("user_level_log").warning(
+                f"Unexpected labs payload for visit {visit_id}: {r.text}"
+            )
+            return []
+
+    def _get_lab_name(self, client: httpx.Client, lab_id: int) -> str | None:
+        """
+        [ANSTO] Gets the lab name for a given lab ID
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client
+        lab_id : int
+            The lab id
+
+        Returns
+        -------
+        str | None
+            The lab name if found, None otherwise
+        """
+        r = client.get(urljoin(settings.DATA_LAYER_API, f"labs/{lab_id}"))
+        if r.status_code != HTTPStatus.OK:
+            logging.getLogger("user_level_log").warning(
+                f"Failed to get lab info from the data layer API: {r.text}"
+            )
+            return None
+        return r.json().get("name")
+
+    def _get_active_projects_for_lab(
+        self, client: httpx.Client, lab_id: int
+    ) -> list[tuple[str, int]]:
+        """
+        [ANSTO] Gets the active projects for a given lab id
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client
+        lab_id : int
+            The lab id
+
+        Returns
+        -------
+        list[tuple[str, int]]
+            A list of tuples containing the project name and ID
+        """
+
+        r = client.get(
+            urljoin(
+                settings.DATA_LAYER_API,
+                f"projects?only_active=true&filter_by_lab={lab_id}",
+            )
+        )
+        if r.status_code != HTTPStatus.OK:
+            logging.getLogger("user_level_log").warning(
+                f"Failed to get project names from the data layer API: {r.text}"
+            )
+            return []
+        try:
+            data = r.json()
+            return [(item["name"], item["id"]) for item in data]
+        except Exception:
+            logging.getLogger("user_level_log").warning(
+                f"Unexpected projects payload for lab {lab_id}: {r.text}"
+            )
+            return []
+
+    def _get_project_paths(
+        self, client: httpx.Client, project_id: int
+    ) -> list[tuple[str, int]]:
+        """
+        [ANSTO] Gets the project paths for a given project ID, including sub-project
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client
+        project_id : int
+            The project id
+
+        Returns
+        -------
+        list[tuple[str, int]]
+            A list of tuples containing the project path and ID
+        """
+
+        def build_paths(node: dict, prefix: str | None = None) -> list[tuple[str, int]]:
+            name = node.get("name", "")
+            pid = node.get("id")
+            if not name or pid is None:
+                return []
+            path = f"{prefix}/{name}" if prefix else name
+            paths: list[tuple[str, int]] = [(path, pid)]
+            for child in node.get("children", []) or []:
+                paths.extend(build_paths(child, path))
+            return paths
+
+        r = client.get(
+            urljoin(
+                settings.DATA_LAYER_API,
+                f"projects/{project_id}?include_children=true&include_parents=false",
+            )
+        )
+        if r.status_code != HTTPStatus.OK:
+            return []
+        try:
+            return build_paths(r.json())
+        except Exception as e:
+            logging.getLogger("HWR").warning(
+                f"Failed to build path for project id {project_id}: {e}"
+            )
+            return []
+
+    def get_labs_with_projects(self) -> list[dict[str, object]]:
+        """
+        [ANSTO] Build project paths per lab including sub-projects.
+
+        Returns
+        -------
+        list[dict[str, object]]
+                Example: [
+                    {"id": "Lab A", "name": "Lab A", "projects": [{"id": 1, "name": "Parent/Child"}]} , ...
+                ]
+        """
+        epn = self._get_epn_string()
+        result: list[dict[str, object]] = []
+        # Cache also as mapping of lab_name -> list[(path, id)] if needed elsewhere
+        self.project_id_lab_name_map: dict[str, list[tuple[str, int]]] = {}
+
+        with httpx.Client() as client:
+            visit_id = self._get_visit_id_for_epn(client, epn)
+            if visit_id is None:
+                return []
+
+            lab_ids = self._get_lab_ids_for_visit(client, visit_id)
+            for lab_id in lab_ids:
+                lab_name = self._get_lab_name(client, lab_id)
+                if not lab_name:
+                    continue
+
+                self.project_id_lab_name_map[lab_name] = []
+                top_level = self._get_active_projects_for_lab(client, lab_id)
+                for _, project_id in top_level:
+                    paths = self._get_project_paths(client, project_id)
+                    if paths:
+                        self.project_id_lab_name_map[lab_name].extend(paths)
+
+                if not self.project_id_lab_name_map[lab_name] and top_level:
+                    self.project_id_lab_name_map[lab_name] = top_level
+
+                # Convert to endpoint payload for this lab
+                projects_payload = [
+                    {"id": pid, "name": pname}
+                    for (pname, pid) in self.project_id_lab_name_map[lab_name]
+                ]
+                result.append(
+                    {"id": lab_name, "name": lab_name, "projects": projects_payload}
+                )
+
+        return result
+
+    def add_hand_mounted_sample(self, project_id: int, sample_name: str) -> int:
+        """
+        [ANSTO] Adds a hand-mounted sample to the database.
+
+        Args:
+            sample_dict: A dictionary with the properties for the entry.
+        """
+        epn = self._get_epn_string()
+
+        with httpx.Client() as client:
+            visit_response = client.get(
+                urljoin(
+                    settings.DATA_LAYER_API,
+                    f"visits?filter_by_identifier_startswith={epn}",
+                )
+            )
+            if visit_response.status_code != HTTPStatus.OK:
+                logging.getLogger("user_level_log").warning(
+                    "Failed to get visit info from the data layer API:"
+                    f" {visit_response.text}"
+                )
+                raise ValueError("Failed to get visit info from the LIMS")
+
+            visit_response_json = visit_response.json()
+            if len(visit_response_json) == 0:
+                logging.getLogger("user_level_log").error(
+                    f"No visit found starting with identifier {epn}"
+                )
+                raise ValueError("No visit found in the LIMS")
+            elif len(visit_response_json) > 1:
+                logging.getLogger("user_level_log").error(
+                    f"Multiple visits ({len(visit_response_json)}) found with"
+                    f" identifier {epn}"
+                )
+                raise ValueError("Multiple visits found in the LIMS")
+            visit_id = visit_response_json[0]["id"]
+
+            sample_dict = {
+                "name": sample_name,
+                "description": "Best sample in the world",
+                "notes": "We like chocolate",
+                "type": "sample_handmount",
+                "project_id": project_id,
+                "visit_id": visit_id,
+            }
+
+            response = client.post(
+                urljoin(settings.DATA_LAYER_API, "samples/handmount"),
+                json=sample_dict,
+            )
+            if response.status_code != HTTPStatus.CREATED:
+                logging.getLogger("user_level_log").error(
+                    "Failed to add hand-mounted sample to the data layer API:"
+                    f" {response.text}"
+                )
+                try:
+                    msg = response.json().get("detail", "")
+                except Exception:
+                    msg = response.text
+                raise ValueError(msg)
+            return response.json()["id"]

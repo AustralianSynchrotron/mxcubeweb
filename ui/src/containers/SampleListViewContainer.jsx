@@ -633,7 +633,7 @@ class SampleListViewContainer extends React.Component {
             // TODO: Hide Refresh button for now
             // Can be implemented later to show samples from the
             // robot matrix
-            style={{ display: 'none' }} 
+            style={{ display: 'none' }}
             className="nowrap-style"
             variant="outline-secondary"
             onClick={() =>
@@ -854,8 +854,7 @@ class SampleListViewContainer extends React.Component {
               <Col sm={5} className="d-flex">
                 {this.getSynchronizationDropDownList()}
                 <span style={{ marginLeft: '1.5em' }} />
-                <Button // Hide Create new sample
-                  style={{ display: 'none' }}
+                <Button
                   className="nowrap-style"
                   variant="outline-secondary"
                   onClick={this.showAddSampleForm}
@@ -935,7 +934,7 @@ class SampleListViewContainer extends React.Component {
                   </Form.Group>
                 </Form>
                 <span style={{ marginLeft: '2em' }} />
-                <Button 
+                <Button
                   style={{ display: 'none' }} // Hide Add Task to Samples
                   variant="outline-secondary"
                   className="all-samples-actions-menu"
@@ -955,7 +954,7 @@ class SampleListViewContainer extends React.Component {
                 <QueueSettings />
                 <span style={{ marginLeft: '1em' }} />
                 {/* Hide Collect button}
-                {/* {this.renderCollectButton()} */} 
+                {/* {this.renderCollectButton()} */}
               </Col>
             </Row>
           </Card.Header>

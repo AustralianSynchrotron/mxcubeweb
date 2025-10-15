@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Modal, ButtonToolbar, Button, Form, Row, Col } from 'react-bootstrap';
 import { addSamplesToList } from '../../actions/sampleGrid';
@@ -7,8 +7,9 @@ import { showList } from '../../actions/queueGUI';
 import { useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { hideTaskParametersForm } from '../../actions/taskForm';
-import { fetchLabs } from '../../api/labs';
-import { fetchProjects } from '../../api/projects';
+import { showErrorPanel } from '../../actions/general';
+import { fetchLabsWithProjects } from '../../api/labsWithProjects';
+import { createHandMountedSample } from '../../api/handmount';
 
 const REQUIRED_MSG = 'This field is required';
 const PATTERN = /^[\w+:-]*$/u;
@@ -18,9 +19,9 @@ function getSampleData(params) {
   return {
     ...params,
     type: 'Sample',
-    // Use project name (if provided) as prefix; fallback to sample name
+    // Use project name as prefix, default to sample name
     defaultPrefix: params.projectName
-      ? `${params.projectName}-${params.sampleName}`
+      ? `${String(params.projectName).replaceAll('/', '-')}-${params.sampleName}`
       : params.sampleName,
     location: 'Manual',
     loadable: true,
@@ -29,10 +30,10 @@ function getSampleData(params) {
 }
 
 function AddSample() {
-  const { register, formState, handleSubmit, setFocus } = useForm();
+  const { register, formState, handleSubmit, setFocus, watch, setValue } = useForm();
   const { isSubmitted, errors } = formState;
   const [labs, setLabs] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [projectsByLab, setProjectsByLab] = useState({});
   const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
@@ -48,24 +49,25 @@ function AddSample() {
     async function loadLists() {
       try {
         setLoading(true);
-        const [labsResp, projectsResp] = await Promise.all([
-          fetchLabs().catch(() => []),
-          fetchProjects().catch(() => []),
-        ]);
-
-        if (mounted) {
-          // Normalize to array of { id, name }
-          const toPairs = (arr) =>
-            (Array.isArray(arr) ? arr : []).map((it) =>
-              typeof it === 'string'
-                ? { id: it, name: it }
-                : { id: it.id ?? it.value ?? it.name, name: it.name ?? it.label ?? it.id },
-            );
-          setLabs(toPairs(labsResp));
-          setProjects(toPairs(projectsResp));
+        const resp = await fetchLabsWithProjects().catch(() => []);
+        if (!mounted) {
+          return;
         }
+
+        // Backend returns payload: [{ id, name, projects: [{ id, name }] }]
+        const dataArr = Array.isArray(resp) ? resp : [];
+        const labsNorm = dataArr.map(({ id, name }) => ({ id, name }));
+        const projMap = {};
+        dataArr.forEach(({ name, projects }) => {
+          projMap[name] = Array.isArray(projects) ? projects : [];
+        });
+
+        setLabs(labsNorm);
+        setProjectsByLab(projMap);
       } finally {
-        mounted && setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     }
     loadLists();
@@ -74,16 +76,50 @@ function AddSample() {
     };
   }, []);
 
+  const selectedLab = watch('labName');
+
+  // When lab changes, clear project selection
+  useEffect(() => {
+    setValue('projectName', '');
+  }, [selectedLab, setValue]);
+
   async function addAndMount(params) {
-    const sampleData = getSampleData(params);
-    dispatch(addSamplesToList([sampleData]));
-    dispatch(hideTaskParametersForm());
+    // Create the hand-mounted sample in the database
+    try {
+      // Map selected names to IDs to call createHandMountedSample
+      const project = (projectsByLab[params.labName] || []).find(
+        (p) => p.name === params.projectName,
+      );
+      const projectId = project?.id;
+      if (!projectId) {
+        throw new Error('No project selected or project not found for selected lab');
+      }
 
-    await dispatch(addSampleAndMount(sampleData));
+      const limsSample = await createHandMountedSample({
+        project_id: projectId,
+        sample_name: params.sampleName,
+      });
+      // Add limsID to sample data. This is used by the back-end to launch prefect flows
+      const sampleData = getSampleData({
+        ...params,
+        projectId,
+        limsID: limsSample?.id,
+      });
 
-    if (pathname === '/' || pathname === '/datacollection') {
-      // Switch to mounted sample tab
-      dispatch(showList('current'));
+      dispatch(addSamplesToList([sampleData]));
+      dispatch(hideTaskParametersForm());
+
+      dispatch(addSampleAndMount(sampleData));
+
+      if (pathname === '/' || pathname === '/datacollection') {
+        // Switch to mounted sample tab
+        dispatch(showList('current'));
+      }
+    } catch (error) {
+      const base = 'Failed to create sample';
+      const headerMsg = error?.response?.headers?.get?.('message');
+      const combined = `${base}: ${String(headerMsg)}`;
+      dispatch(showErrorPanel(true, String(combined)));
     }
   }
 
@@ -131,12 +167,17 @@ function AddSample() {
             <Col sm={8}>
               <Form.Select
                 {...register('labName', { required: REQUIRED_MSG })}
-                isValid={isSubmitted && !errors.labName}
-                isInvalid={isSubmitted && !!errors.labName}
+                isValid={isSubmitted && !errors.labName && labs.length > 0}
+                isInvalid={isSubmitted && !!errors.labName && labs.length > 0}
                 defaultValue=""
+                disabled={labs.length === 0}
               >
                 <option value="" disabled>
-                  {loading ? 'Loading labs…' : 'Select a lab'}
+                  {loading
+                    ? 'Loading labs…'
+                    : labs.length === 0
+                      ? 'No labs available for this visit'
+                      : 'Select a lab'}
                 </option>
                 {labs.map((l) => (
                   <option key={l.id} value={l.name}>
@@ -160,11 +201,16 @@ function AddSample() {
                 isValid={isSubmitted && !errors.projectName}
                 isInvalid={isSubmitted && !!errors.projectName}
                 defaultValue=""
+                disabled={!selectedLab}
               >
                 <option value="" disabled>
-                  {loading ? 'Loading projects…' : 'Select a project'}
+                  {!selectedLab
+                    ? 'Select a lab first'
+                    : loading
+                      ? 'Loading projects…'
+                      : 'Select a project'}
                 </option>
-                {projects.map((p) => (
+                {(projectsByLab[selectedLab] || []).map((p) => (
                   <option key={p.id} value={p.name}>
                     {p.name}
                   </option>
