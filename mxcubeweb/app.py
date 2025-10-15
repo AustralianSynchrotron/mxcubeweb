@@ -430,6 +430,11 @@ class MXCUBEApplication:
             else:
                 logger.disabled = True
 
+        for name in ("httpx", "httpcore"):
+            logger = logging.getLogger(name)
+            logger.setLevel(logging.ERROR)
+            logger.propagate = False
+
     @staticmethod
     def init_state_storage():
         """
