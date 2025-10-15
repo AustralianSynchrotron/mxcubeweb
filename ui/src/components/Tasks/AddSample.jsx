@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Modal, ButtonToolbar, Button, Form, Row, Col } from 'react-bootstrap';
 import { addSamplesToList } from '../../actions/sampleGrid';
@@ -19,7 +19,7 @@ function getSampleData(params) {
   return {
     ...params,
     type: 'Sample',
-    // Use project name (if provided) as prefix; fallback to sample name
+    // Use project name as prefix, default to sample name
     defaultPrefix: params.projectName
       ? `${String(params.projectName).replaceAll('/', '-')}-${params.sampleName}`
       : params.sampleName,
@@ -92,9 +92,9 @@ function AddSample() {
   }, [selectedLab, setValue]);
 
   async function addAndMount(params) {
-    // First, create the hand-mounted sample in LIMS
+    // Create the hand-mounted sample in the database
     try {
-      // Map selected names to IDs for LIMS call
+      // Map selected names to IDs to call createHandMountedSample
       const project = (projectsByLab[params.labName] || []).find(
         (p) => p.name === params.projectName,
       );
@@ -107,7 +107,7 @@ function AddSample() {
         project_id: projectId,
         sample_name: params.sampleName,
       });
-      // Optionally attach created LIMS sample id to sample data
+      // Add limsID to sample data. This is used by the back-end to launch prefect flows
       const sampleData = getSampleData({
         ...params,
         projectId,
