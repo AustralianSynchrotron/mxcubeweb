@@ -341,14 +341,17 @@ class Lims(ComponentBase):
                 raise ValueError("EPN string is not set in Redis")
             return epn_string
 
-    def get_labs_with_projects(self) -> dict[str, list[tuple[str, int]]]:
+    def get_labs_with_projects(self) -> list[dict[str, object]]:
         """
         [ANSTO] Build project paths per lab including sub-projects.
+        Keeps track of project id
 
         Returns
         -------
-        dict[str, list[tuple[str, int]]]
-            Mapping of lab name to list of (project_path, project_id) tuples.
+        list[dict[str, object]]
+                Example: [
+                    {"id": "Lab A", "name": "Lab A", "projects": [{"id": 1, "name": "Parent/Child"}]} , ...
+                ]
         """
         # Get labs and their top-level projects from the data layer
         epn = self._get_epn_string()
@@ -380,19 +383,19 @@ class Lims(ComponentBase):
                 logging.getLogger("user_level_log").warning(
                     f"Failed to get visit info from the data layer API: {visit_response.text}"
                 )
-                return {}
+                return []
 
             visit_response_json = visit_response.json()
             if len(visit_response_json) == 0:
                 logging.getLogger("user_level_log").error(
                     f"No visit found starting with identifier {epn}"
                 )
-                return {}
+                return []
             elif len(visit_response_json) > 1:
                 logging.getLogger("user_level_log").error(
                     f"Multiple visits ({len(visit_response_json)}) found with identifier {epn}"
                 )
-                return {}
+                return []
 
             visit_id = visit_response_json[0]["id"]
 
@@ -432,6 +435,7 @@ class Lims(ComponentBase):
 
             # For each lab and project, build project paths including children
             lab_names = sorted(labs_with_projects.keys(), key=str.casefold)
+            result: list[dict[str, object]] = []
             for lab_name in lab_names:
                 self.project_id_lab_name_map[lab_name] = []
                 for project_name, project_id in labs_with_projects[lab_name]:
@@ -459,7 +463,17 @@ class Lims(ComponentBase):
                             (project_name, project_id)
                         )
 
-        return self.project_id_lab_name_map
+                projects_payload = [
+                    {"id": pid, "name": pname}
+                    for (pname, pid) in self.project_id_lab_name_map[lab_name]
+                ]
+                result.append({
+                    "id": lab_name,
+                    "name": lab_name,
+                    "projects": projects_payload,
+                })
+
+        return result
     
     def add_hand_mounted_sample(self, project_id: int, sample_name: str) -> int:
         """

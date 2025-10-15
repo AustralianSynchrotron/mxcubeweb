@@ -68,29 +68,16 @@ def init_route(app, server, url_prefix):  # noqa: C901
     def get_labs_with_projects():
         """Return labs with their associated projects from LIMS.
 
-        Expected shape (example):
+        Expected shape:
         [
             {"id": "Lab A", "name": "Lab A", "projects": [
                 {"id": "Project X", "name": "Project X"}, ...
             ]},
-            ...
         ]
         """
         try:
             data = app.lims.get_labs_with_projects()
-            # Transform dict[str, list[tuple[str, int]]] ->
-            # [{ id, name, projects: [{ id, name }] }]
-            result = []
-            for lab_name, projects in (data or {}).items():
-                lab_obj = {
-                    "id": lab_name,
-                    "name": lab_name,
-                    "projects": [
-                        {"id": pid, "name": pname} for pname, pid in projects
-                    ],
-                }
-                result.append(lab_obj)
-            return jsonify(result)
+            return jsonify(data or [])
         except Exception as ex:
             logging.getLogger("MX3.HWR").warning(
                 f"Failed to load labs_with_projects: {ex}"

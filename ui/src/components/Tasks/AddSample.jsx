@@ -124,7 +124,7 @@ function AddSample() {
         dispatch(showList('current'));
       }
     } catch (error) {
-      const base = 'Failed to create sample in LIMS';
+      const base = 'Failed to create sample';
       const headerMsg = error?.response?.headers?.get?.('message');
       const combined = `${base}: ${String(headerMsg)}`;
       dispatch(showErrorPanel(true, String(combined)));
