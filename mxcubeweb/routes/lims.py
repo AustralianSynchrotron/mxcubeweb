@@ -103,7 +103,10 @@ def init_route(app, server, url_prefix):  # noqa: C901
                 return (
                     "Missing 'project_id' or 'sample_name'",
                     409,
-                    {"Content-Type": "application/json", "message": "Missing required fields"},
+                    {
+                        "Content-Type": "application/json",
+                        "message": "Missing required fields",
+                    },
                 )
 
             sample_id = app.lims.add_hand_mounted_sample(project_id, sample_name)

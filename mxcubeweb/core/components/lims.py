@@ -4,19 +4,19 @@ import logging
 import math
 import re
 import sys
+from http import HTTPStatus
+from urllib.parse import urljoin
 
+import httpx
 from flask_login import current_user
 from mxcubecore import HardwareRepository as HWR
+from mxcubecore.configuration.ansto.config import settings
+from mxcubecore.HardwareObjects.ANSTO.redis_utils import get_redis_connection
 from mxcubecore.model import queue_model_objects as qmo
 from mxcubecore.model.lims_session import LimsSessionManager
 
 from mxcubeweb.core.components.component_base import ComponentBase
 from mxcubeweb.core.util import fsutils
-from mxcubecore.configuration.ansto.config import settings
-from mxcubecore.HardwareObjects.ANSTO.redis_utils import get_redis_connection
-import httpx
-from http import HTTPStatus
-from urllib.parse import urljoin
 
 VALID_SAMPLE_NAME_REGEXP = re.compile("^[a-zA-Z0-9:+_-]+$")
 
@@ -359,7 +359,9 @@ class Lims(ComponentBase):
 
         self.project_id_lab_name_map: dict[str, list[tuple[str, int]]] = {}
 
-        def build_paths(project: dict, prefix: str | None = None) -> list[tuple[str, int]]:
+        def build_paths(
+            project: dict, prefix: str | None = None
+        ) -> list[tuple[str, int]]:
             """Build (path, id) from a project that can contain a list of children"""
             name = project.get("name", "")
             proj_id = project.get("id")
@@ -381,7 +383,8 @@ class Lims(ComponentBase):
             )
             if visit_response.status_code != HTTPStatus.OK:
                 logging.getLogger("user_level_log").warning(
-                    f"Failed to get visit info from the data layer API: {visit_response.text}"
+                    "Failed to get visit info from the data layer API:"
+                    f" {visit_response.text}"
                 )
                 return []
 
@@ -393,17 +396,21 @@ class Lims(ComponentBase):
                 return []
             elif len(visit_response_json) > 1:
                 logging.getLogger("user_level_log").error(
-                    f"Multiple visits ({len(visit_response_json)}) found with identifier {epn}"
+                    f"Multiple visits ({len(visit_response_json)}) found with"
+                    f" identifier {epn}"
                 )
                 return []
 
             visit_id = visit_response_json[0]["id"]
 
             # Get labs for the visit
-            lab_response = client.get(settings.DATA_LAYER_API + f"/visits/{visit_id}/labs")
+            lab_response = client.get(
+                settings.DATA_LAYER_API + f"/visits/{visit_id}/labs"
+            )
             if lab_response.status_code != HTTPStatus.OK:
                 logging.getLogger("user_level_log").warning(
-                    f"Failed to get lab info from the data layer API: {lab_response.text}"
+                    "Failed to get lab info from the data layer API:"
+                    f" {lab_response.text}"
                 )
 
             lab_ids = [lab["id"] for lab in lab_response.json()]
@@ -412,7 +419,8 @@ class Lims(ComponentBase):
                 lab_info_response = client.get(settings.DATA_LAYER_API + f"/labs/{lab}")
                 if lab_info_response.status_code != HTTPStatus.OK:
                     logging.getLogger("user_level_log").warning(
-                        f"Failed to get lab info from the data layer API: {lab_info_response.text}"
+                        "Failed to get lab info from the data layer API:"
+                        f" {lab_info_response.text}"
                     )
                     continue
                 lab_name = lab_info_response.json()["name"]
@@ -424,7 +432,8 @@ class Lims(ComponentBase):
                 )
                 if projects_response.status_code != HTTPStatus.OK:
                     logging.getLogger("user_level_log").warning(
-                        f"Failed to get project names from the data layer API: {projects_response.text}"
+                        "Failed to get project names from the data layer API:"
+                        f" {projects_response.text}"
                     )
                     continue
 
@@ -467,14 +476,16 @@ class Lims(ComponentBase):
                     {"id": pid, "name": pname}
                     for (pname, pid) in self.project_id_lab_name_map[lab_name]
                 ]
-                result.append({
-                    "id": lab_name,
-                    "name": lab_name,
-                    "projects": projects_payload,
-                })
+                result.append(
+                    {
+                        "id": lab_name,
+                        "name": lab_name,
+                        "projects": projects_payload,
+                    }
+                )
 
         return result
-    
+
     def add_hand_mounted_sample(self, project_id: int, sample_name: str) -> int:
         """
         [ANSTO] Adds a hand-mounted sample to the database.
@@ -493,10 +504,11 @@ class Lims(ComponentBase):
             )
             if visit_response.status_code != HTTPStatus.OK:
                 logging.getLogger("user_level_log").warning(
-                    f"Failed to get visit info from the data layer API: {visit_response.text}"
+                    "Failed to get visit info from the data layer API:"
+                    f" {visit_response.text}"
                 )
                 raise ValueError("Failed to get visit info from the LIMS")
-            
+
             visit_response_json = visit_response.json()
             if len(visit_response_json) == 0:
                 logging.getLogger("user_level_log").error(
@@ -505,7 +517,8 @@ class Lims(ComponentBase):
                 raise ValueError("No visit found in the LIMS")
             elif len(visit_response_json) > 1:
                 logging.getLogger("user_level_log").error(
-                    f"Multiple visits ({len(visit_response_json)}) found with identifier {epn}"
+                    f"Multiple visits ({len(visit_response_json)}) found with"
+                    f" identifier {epn}"
                 )
                 raise ValueError("Multiple visits found in the LIMS")
             visit_id = visit_response_json[0]["id"]
@@ -516,8 +529,8 @@ class Lims(ComponentBase):
                 "notes": "We like chocolate",
                 "type": "sample_handmount",
                 "project_id": project_id,
-                "visit_id": visit_id
-                }
+                "visit_id": visit_id,
+            }
 
             response = client.post(
                 settings.DATA_LAYER_API + "/samples/handmount",
@@ -525,7 +538,8 @@ class Lims(ComponentBase):
             )
             if response.status_code != HTTPStatus.CREATED:
                 logging.getLogger("user_level_log").error(
-                    f"Failed to add hand-mounted sample to the data layer API: {response.text}"
+                    "Failed to add hand-mounted sample to the data layer API:"
+                    f" {response.text}"
                 )
                 try:
                     msg = response.json().get("detail", "")
@@ -533,4 +547,3 @@ class Lims(ComponentBase):
                     msg = response.text
                 raise ValueError(msg)
             return response.json()["id"]
-        
