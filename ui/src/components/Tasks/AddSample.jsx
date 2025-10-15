@@ -109,7 +109,7 @@ function AddSample() {
       dispatch(addSamplesToList([sampleData]));
       dispatch(hideTaskParametersForm());
 
-      await dispatch(addSampleAndMount(sampleData));
+      dispatch(addSampleAndMount(sampleData));
 
       if (pathname === '/' || pathname === '/datacollection') {
         // Switch to mounted sample tab

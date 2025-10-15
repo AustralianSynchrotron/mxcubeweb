@@ -341,10 +341,185 @@ class Lims(ComponentBase):
                 raise ValueError("EPN string is not set in Redis")
             return epn_string
 
+    def _get_visit_id_for_epn(self, client: httpx.Client, epn: str) -> int | None:
+        """
+        [ANSTO] Gets the visit id for a given EPN string
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client to use for the request
+        epn : str
+            The EPN string to filter by
+
+        Returns
+        -------
+        int | None
+            The visit ID if found, None otherwise
+        """
+        r = client.get(
+            urljoin(
+                settings.DATA_LAYER_API, f"visits?filter_by_identifier_startswith={epn}"
+            )
+        )
+        if r.status_code != HTTPStatus.OK:
+            logging.getLogger("user_level_log").warning(
+                f"Failed to get visit info from the data layer API: {r.text}"
+            )
+            return None
+        data = r.json()
+        if len(data) == 0:
+            logging.getLogger("user_level_log").error(
+                f"No visit found starting with identifier {epn}"
+            )
+            return None
+        if len(data) > 1:
+            logging.getLogger("user_level_log").error(
+                f"Multiple visits ({len(data)}) found with identifier {epn}"
+            )
+            return None
+        return data[0]["id"]
+
+    def _get_lab_ids_for_visit(self, client: httpx.Client, visit_id: int) -> list[int]:
+        """
+        [ANSTO] Gets the lab IDs associated with a visit
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client
+        visit_id : int
+            The visit id
+
+        Returns
+        -------
+        list[int]
+            The list of lab IDs associated with the visit
+        """
+        r = client.get(settings.DATA_LAYER_API + f"/visits/{visit_id}/labs")
+        if r.status_code != HTTPStatus.OK:
+            logging.getLogger("user_level_log").warning(
+                f"Failed to get lab info from the data layer API: {r.text}"
+            )
+            return []
+        try:
+            return [lab["id"] for lab in r.json()]
+        except Exception:
+            logging.getLogger("user_level_log").warning(
+                f"Unexpected labs payload for visit {visit_id}: {r.text}"
+            )
+            return []
+
+    def _get_lab_name(self, client: httpx.Client, lab_id: int) -> str | None:
+        """
+        [ANSTO] Gets the lab name for a given lab ID
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client
+        lab_id : int
+            The lab id
+
+        Returns
+        -------
+        str | None
+            The lab name if found, None otherwise
+        """
+        r = client.get(settings.DATA_LAYER_API + f"/labs/{lab_id}")
+        if r.status_code != HTTPStatus.OK:
+            logging.getLogger("user_level_log").warning(
+                f"Failed to get lab info from the data layer API: {r.text}"
+            )
+            return None
+        return r.json().get("name")
+
+    def _get_active_projects_for_lab(
+        self, client: httpx.Client, lab_id: int
+    ) -> list[tuple[str, int]]:
+        """
+        [ANSTO] Gets the active projects for a given lab id
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client
+        lab_id : int
+            The lab id
+
+        Returns
+        -------
+        list[tuple[str, int]]
+            A list of tuples containing the project name and ID
+        """
+
+        r = client.get(
+            settings.DATA_LAYER_API
+            + f"/projects?only_active=true&filter_by_lab={lab_id}"
+        )
+        if r.status_code != HTTPStatus.OK:
+            logging.getLogger("user_level_log").warning(
+                f"Failed to get project names from the data layer API: {r.text}"
+            )
+            return []
+        try:
+            data = r.json()
+            return [(item["name"], item["id"]) for item in data]
+        except Exception:
+            logging.getLogger("user_level_log").warning(
+                f"Unexpected projects payload for lab {lab_id}: {r.text}"
+            )
+            return []
+
+    def _get_project_paths(
+        self, client: httpx.Client, project_id: int
+    ) -> list[tuple[str, int]]:
+        """
+        [ANSTO] Gets the project paths for a given project ID, including sub-project
+
+        Parameters
+        ----------
+        client : httpx.Client
+            The HTTP client
+        project_id : int
+            The project id
+
+        Returns
+        -------
+        list[tuple[str, int]]
+            A list of tuples containing the project path and ID
+        """
+
+        def build_paths(node: dict, prefix: str | None = None) -> list[tuple[str, int]]:
+            name = node.get("name", "")
+            pid = node.get("id")
+            if not name or pid is None:
+                return []
+            path = f"{prefix}/{name}" if prefix else name
+            paths: list[tuple[str, int]] = [(path, pid)]
+            for child in node.get("children", []) or []:
+                paths.extend(build_paths(child, path))
+            return paths
+
+        r = client.get(
+            urljoin(
+                settings.DATA_LAYER_API,
+                f"projects/{project_id}?include_children=true&include_parents=false",
+            )
+        )
+        if r.status_code != HTTPStatus.OK:
+            return []
+        try:
+            return build_paths(r.json())
+        except Exception as e:
+            logging.getLogger("HWR").warning(
+                f"Failed to build path for project id {project_id}: {e}"
+            )
+            return []
+
     def get_labs_with_projects(self) -> list[dict[str, object]]:
         """
         [ANSTO] Build project paths per lab including sub-projects.
-        Keeps track of project id
 
         Returns
         -------
@@ -353,135 +528,39 @@ class Lims(ComponentBase):
                     {"id": "Lab A", "name": "Lab A", "projects": [{"id": 1, "name": "Parent/Child"}]} , ...
                 ]
         """
-        # Get labs and their top-level projects from the data layer
         epn = self._get_epn_string()
-        labs_with_projects: dict[str, list[tuple[str, int]]] = {}
-
+        result: list[dict[str, object]] = []
+        # Cache also as mapping of lab_name -> list[(path, id)] if needed elsewhere
         self.project_id_lab_name_map: dict[str, list[tuple[str, int]]] = {}
 
-        def build_paths(
-            project: dict, prefix: str | None = None
-        ) -> list[tuple[str, int]]:
-            """Build (path, id) from a project that can contain a list of children"""
-            name = project.get("name", "")
-            proj_id = project.get("id")
-            if not name or proj_id is None:
-                return []
-            path = f"{prefix}/{name}" if prefix else name
-            paths: list[tuple[str, int]] = [(path, proj_id)]
-            for child in project.get("children", []) or []:
-                paths.extend(build_paths(child, path))
-            return paths
-
         with httpx.Client() as client:
-            # Get visit id from the EPN
-            visit_response = client.get(
-                urljoin(
-                    settings.DATA_LAYER_API,
-                    f"visits?filter_by_identifier_startswith={epn}",
-                )
-            )
-            if visit_response.status_code != HTTPStatus.OK:
-                logging.getLogger("user_level_log").warning(
-                    "Failed to get visit info from the data layer API:"
-                    f" {visit_response.text}"
-                )
+            visit_id = self._get_visit_id_for_epn(client, epn)
+            if visit_id is None:
                 return []
 
-            visit_response_json = visit_response.json()
-            if len(visit_response_json) == 0:
-                logging.getLogger("user_level_log").error(
-                    f"No visit found starting with identifier {epn}"
-                )
-                return []
-            elif len(visit_response_json) > 1:
-                logging.getLogger("user_level_log").error(
-                    f"Multiple visits ({len(visit_response_json)}) found with"
-                    f" identifier {epn}"
-                )
-                return []
-
-            visit_id = visit_response_json[0]["id"]
-
-            # Get labs for the visit
-            lab_response = client.get(
-                settings.DATA_LAYER_API + f"/visits/{visit_id}/labs"
-            )
-            if lab_response.status_code != HTTPStatus.OK:
-                logging.getLogger("user_level_log").warning(
-                    "Failed to get lab info from the data layer API:"
-                    f" {lab_response.text}"
-                )
-
-            lab_ids = [lab["id"] for lab in lab_response.json()]
-            for lab in lab_ids:
-                # Get lab name
-                lab_info_response = client.get(settings.DATA_LAYER_API + f"/labs/{lab}")
-                if lab_info_response.status_code != HTTPStatus.OK:
-                    logging.getLogger("user_level_log").warning(
-                        "Failed to get lab info from the data layer API:"
-                        f" {lab_info_response.text}"
-                    )
-                    continue
-                lab_name = lab_info_response.json()["name"]
-
-                # Get projects for this lab
-                projects_response = client.get(
-                    settings.DATA_LAYER_API
-                    + f"/projects?only_active=true&filter_by_lab={lab}"
-                )
-                if projects_response.status_code != HTTPStatus.OK:
-                    logging.getLogger("user_level_log").warning(
-                        "Failed to get project names from the data layer API:"
-                        f" {projects_response.text}"
-                    )
+            lab_ids = self._get_lab_ids_for_visit(client, visit_id)
+            for lab_id in lab_ids:
+                lab_name = self._get_lab_name(client, lab_id)
+                if not lab_name:
                     continue
 
-                data = projects_response.json()
-                labs_with_projects[lab_name] = [
-                    (item["name"], item["id"]) for item in data
-                ]
-
-            # For each lab and project, build project paths including children
-            lab_names = sorted(labs_with_projects.keys(), key=str.casefold)
-            result: list[dict[str, object]] = []
-            for lab_name in lab_names:
                 self.project_id_lab_name_map[lab_name] = []
-                for project_name, project_id in labs_with_projects[lab_name]:
-                    try:
-                        r = client.get(
-                            urljoin(
-                                settings.DATA_LAYER_API,
-                                f"projects/{project_id}?include_children=true&include_parents=false",
-                            )
-                        )
-                        if r.status_code == HTTPStatus.OK:
-                            node = r.json()
-                            self.project_id_lab_name_map[lab_name].extend(
-                                build_paths(node)
-                            )
-                        else:
-                            self.project_id_lab_name_map[lab_name].append(
-                                (project_name, project_id)
-                            )
-                    except Exception as e:
-                        logging.getLogger("HWR").warning(
-                            f"Failed to build path for project id {project_id}: {e}"
-                        )
-                        self.project_id_lab_name_map[lab_name].append(
-                            (project_name, project_id)
-                        )
+                top_level = self._get_active_projects_for_lab(client, lab_id)
+                for _, project_id in top_level:
+                    paths = self._get_project_paths(client, project_id)
+                    if paths:
+                        self.project_id_lab_name_map[lab_name].extend(paths)
 
+                if not self.project_id_lab_name_map[lab_name] and top_level:
+                    self.project_id_lab_name_map[lab_name] = top_level
+
+                # Convert to endpoint payload for this lab
                 projects_payload = [
                     {"id": pid, "name": pname}
                     for (pname, pid) in self.project_id_lab_name_map[lab_name]
                 ]
                 result.append(
-                    {
-                        "id": lab_name,
-                        "name": lab_name,
-                        "projects": projects_payload,
-                    }
+                    {"id": lab_name, "name": lab_name, "projects": projects_payload}
                 )
 
         return result
