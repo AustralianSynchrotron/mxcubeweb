@@ -91,27 +91,11 @@ def init_route(app, server, url_prefix):  # noqa: C901
                 }
                 result.append(lab_obj)
             return jsonify(result)
-        except Exception:
-            # Safe fallback so UI remains usable during integration
-            return jsonify(
-                [
-                    {
-                        "id": "Lab A",
-                        "name": "Lab A",
-                        "projects": [
-                            {"id": "Project X", "name": "Project X"},
-                            {"id": "Project Y", "name": "Project Y"},
-                        ],
-                    },
-                    {
-                        "id": "Lab B",
-                        "name": "Lab B",
-                        "projects": [
-                            {"id": "Project Z", "name": "Project Z"},
-                        ],
-                    },
-                ]
+        except Exception as ex:
+            logging.getLogger("MX3.HWR").warning(
+                f"Failed to load labs_with_projects: {ex}"
             )
+            return jsonify([])
 
     @bp.route("/hand_mounted_sample", methods=["POST"])
     @server.restrict
@@ -144,8 +128,6 @@ def init_route(app, server, url_prefix):  # noqa: C901
                 409,
                 {"Content-Type": "application/json", "message": str(ex)},
             )
-
-    # Note: Labs and projects are provided via /lims/labs_with_projects.
 
     def run_get_result_script(script_name, url):
         return check_output(["node", script_name, url], close_fds=True)

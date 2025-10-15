@@ -175,12 +175,17 @@ function AddSample() {
             <Col sm={8}>
               <Form.Select
                 {...register('labName', { required: REQUIRED_MSG })}
-                isValid={isSubmitted && !errors.labName}
-                isInvalid={isSubmitted && !!errors.labName}
+                isValid={isSubmitted && !errors.labName && labs.length > 0}
+                isInvalid={isSubmitted && !!errors.labName && labs.length > 0}
                 defaultValue=""
+                disabled={labs.length === 0}
               >
                 <option value="" disabled>
-                  {loading ? 'Loading labs…' : 'Select a lab'}
+                  {loading
+                    ? 'Loading labs…'
+                    : labs.length === 0
+                      ? 'No labs available for this visit'
+                      : 'Select a lab'}
                 </option>
                 {labs.map((l) => (
                   <option key={l.id} value={l.name}>
