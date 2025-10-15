@@ -396,7 +396,7 @@ class Lims(ComponentBase):
         list[int]
             The list of lab IDs associated with the visit
         """
-        r = client.get(settings.DATA_LAYER_API + f"/visits/{visit_id}/labs")
+        r = client.get(urljoin(settings.DATA_LAYER_API, f"visits/{visit_id}/labs"))
         if r.status_code != HTTPStatus.OK:
             logging.getLogger("user_level_log").warning(
                 f"Failed to get lab info from the data layer API: {r.text}"
@@ -426,7 +426,7 @@ class Lims(ComponentBase):
         str | None
             The lab name if found, None otherwise
         """
-        r = client.get(settings.DATA_LAYER_API + f"/labs/{lab_id}")
+        r = client.get(urljoin(settings.DATA_LAYER_API, f"labs/{lab_id}"))
         if r.status_code != HTTPStatus.OK:
             logging.getLogger("user_level_log").warning(
                 f"Failed to get lab info from the data layer API: {r.text}"
@@ -454,8 +454,10 @@ class Lims(ComponentBase):
         """
 
         r = client.get(
-            settings.DATA_LAYER_API
-            + f"/projects?only_active=true&filter_by_lab={lab_id}"
+            urljoin(
+                settings.DATA_LAYER_API,
+                f"projects?only_active=true&filter_by_lab={lab_id}",
+            )
         )
         if r.status_code != HTTPStatus.OK:
             logging.getLogger("user_level_log").warning(
@@ -578,7 +580,7 @@ class Lims(ComponentBase):
             visit_response = client.get(
                 urljoin(
                     settings.DATA_LAYER_API,
-                    f"/visits?filter_by_identifier_startswith={epn}",
+                    f"visits?filter_by_identifier_startswith={epn}",
                 )
             )
             if visit_response.status_code != HTTPStatus.OK:
@@ -612,7 +614,7 @@ class Lims(ComponentBase):
             }
 
             response = client.post(
-                settings.DATA_LAYER_API + "/samples/handmount",
+                urljoin(settings.DATA_LAYER_API, "samples/handmount"),
                 json=sample_dict,
             )
             if response.status_code != HTTPStatus.CREATED:
