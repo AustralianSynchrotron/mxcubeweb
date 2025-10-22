@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import logging
-from io import StringIO
+from io import BytesIO
 
 import gevent.event
 import PIL
@@ -58,12 +58,12 @@ class HttpStreamer:
             img = img
         else:
             rawdata = img.bits().asstring(img.numBytes())
-            strbuf = StringIO()
+            buf = BytesIO()
             image = PIL.Image.frombytes("RGBA", (width, height), rawdata)
             (r, g, b, a) = image.split()
             image = PIL.Image.merge("RGB", (b, g, r))
-            image.save(strbuf, "JPEG")
-            img = strbuf.get_value()
+            image.save(buf, "JPEG")
+            img = buf.getvalue()
 
         self._sample_image = img
 
@@ -75,22 +75,33 @@ class HttpStreamer:
         """
         build new Response object, that will send frames to the client
         """
+        boundary = b"frame"
 
         def frames():
             while True:
                 self._new_frame.wait()
-                yield (
-                    b"--frame\r\n--!>\nContent-type: image/jpeg\n\n"
-                    + self._sample_image
+                frame = self._sample_image or b""
+                headers = (
+                    b"--"
+                    + boundary
                     + b"\r\n"
+                    + b"Content-Type: image/jpeg\r\n"
+                    + b"Content-Length: "
+                    + str(len(frame)).encode("ascii")
+                    + b"\r\n\r\n"
                 )
+                yield headers + frame + b"\r\n"
 
         self._client_connected()
 
         response = Response(
             frames(),
-            mimetype='multipart/x-mixed-replace; boundary="!>"',
+            mimetype="multipart/x-mixed-replace; boundary=frame",
         )
+        # Prevent intermediaries from caching the stream
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
         # keep track of when client stops reading the stream
         response.call_on_close(self._client_disconnected)
 
