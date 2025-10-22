@@ -60,6 +60,7 @@ export default class SampleImage extends React.Component {
     this.player = null;
     this.centringCross = [];
     this.removeShapes = this.removeShapes.bind(this);
+    this.handleImageError = this.handleImageError.bind(this);
   }
 
   componentDidMount() {
@@ -780,7 +781,15 @@ export default class SampleImage extends React.Component {
     }
 
     let result = (
-      <img id="sample-img" className="img" src={source} alt="SampleView" />
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
+      <img
+        id="sample-img"
+        className="img"
+        src={source}
+        data-origsrc={source}
+        alt="SampleView"
+        onError={this.handleImageError}
+      />
     );
 
     if (format === 'MPEG1') {
@@ -788,6 +797,21 @@ export default class SampleImage extends React.Component {
     }
 
     return result;
+  }
+
+  handleImageError(e) {
+    // force reload of image on error by adding a random query parameter
+    try {
+      const img = e?.target;
+      if (!img) {
+        return;
+      }
+      const base = img.dataset.origsrc || img.src.split('?')[0];
+      img.dataset.origsrc = base;
+      img.src = `${base}?r=${Date.now()}`;
+    } catch {
+      // noop
+    }
   }
 
   initJSMpeg() {
