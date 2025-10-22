@@ -61,6 +61,7 @@ export default class SampleImage extends React.Component {
     this.centringCross = [];
     this.removeShapes = this.removeShapes.bind(this);
     this.handleImageError = this.handleImageError.bind(this);
+    this.refreshMJPEG = this.refreshMJPEG.bind(this);
   }
 
   componentDidMount() {
@@ -99,6 +100,8 @@ export default class SampleImage extends React.Component {
     document.addEventListener('keyup', this.keyUp, false);
 
     window.initJSMpeg = this.initJSMpeg;
+    // Expose a safe MJPEG refresh hook to allow reconnect after ws reconnects
+    window.refreshMJPEG = this.refreshMJPEG;
     this.initJSMpeg();
   }
 
@@ -155,6 +158,7 @@ export default class SampleImage extends React.Component {
     imageOverlay.removeEventListener('dblclick', this.goToBeam);
 
     window.initJSMpeg = null;
+    window.refreshMJPEG = null;
   }
 
   onMouseMove(options) {
@@ -804,6 +808,20 @@ export default class SampleImage extends React.Component {
     try {
       const img = e?.target;
       if (!img) {
+        return;
+      }
+      const base = img.dataset.origsrc || img.src.split('?')[0];
+      img.dataset.origsrc = base;
+      img.src = `${base}?r=${Date.now()}`;
+    } catch {
+      // noop
+    }
+  }
+
+  refreshMJPEG() {
+    try {
+      const img = document.querySelector('#sample-img');
+      if (!img || img.tagName !== 'IMG') {
         return;
       }
       const base = img.dataset.origsrc || img.src.split('?')[0];

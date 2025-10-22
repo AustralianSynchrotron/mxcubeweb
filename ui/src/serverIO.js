@@ -84,6 +84,11 @@ class ServerIO {
 
   disconnect() {
     this.hwrSocket?.disconnect();
+        // Clear any pending "connection lost" timeout from a previous disconnect
+        if (this.connectionLostTimeout) {
+          clearTimeout(this.connectionLostTimeout);
+          this.connectionLostTimeout = null;
+        }
     this.hwrSocket = null;
 
     this.loggingSocket?.disconnect();
@@ -96,6 +101,22 @@ class ServerIO {
     this.hwrSocket.on('connect', () => {
       console.log('hwrSocket connected!'); // eslint-disable-line no-console
       dispatch(showConnectionLostDialog(false));
+      //  Try to refresh camera stream on reconnect
+      try {
+        if (typeof window !== 'undefined') {
+          // Refresh MJPEG stream if available
+          if (typeof window.refreshMJPEG === 'function') {
+            window.refreshMJPEG();
+          }
+          // Re-init MPEG1 player if used
+          if (typeof window.initJSMpeg === 'function') {
+            window.initJSMpeg();
+          }
+        }
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.debug('Video refresh on reconnect failed:', error);
+      }
     });
 
     this.hwrSocket.on('connect_error', (error) => {
@@ -104,8 +125,13 @@ class ServerIO {
 
     this.hwrSocket.on('disconnect', (reason) => {
       console.log('hwrSocket disconnected!'); // eslint-disable-line no-console
+      // If server explicitly closed the socket (e.g., unauthorized), check login state
+      if (reason === 'io server disconnect') {
+        // This will update Redux to logged out if session is invalid, redirecting to login UI
+        dispatch(getLoginInfo());
+      }
 
-      setTimeout(() => {
+      this.connectionLostTimeout = setTimeout(() => {
         dispatch(
           // Show message if socket still hasn't reconnected (and wasn't manually disconnected in the first place)
           showConnectionLostDialog(this.hwrSocket && !this.hwrSocket.connected),
