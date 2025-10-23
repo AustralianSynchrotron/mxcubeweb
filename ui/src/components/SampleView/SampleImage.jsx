@@ -44,6 +44,10 @@ export default class SampleImage extends React.Component {
     this.selectedGrid = this.selectedGrid.bind(this);
   this.initJSMpeg = this.initJSMpeg.bind(this);
   this.handleRefreshCamera = this.handleRefreshCamera.bind(this);
+  this.handleManualRefreshCamera = this.handleManualRefreshCamera.bind(this);
+  this.onImgError = this.onImgError.bind(this);
+  this.bindVideoHandlers = this.bindVideoHandlers.bind(this);
+  this.clearReconnect = this.clearReconnect.bind(this);
     this.centringMessage = this.centringMessage.bind(this);
     this.selectShape = this.selectShape.bind(this);
     this.deSelectShape = this.deSelectShape.bind(this);
@@ -59,8 +63,16 @@ export default class SampleImage extends React.Component {
     this.girdOrigin = null;
     this.lineGroup = null;
     this.player = null;
+  this.reconnectAttempts = 0;
+  this.reconnectTimer = null;
+  this.maxReconnectDelay = 30_000; // 30s cap
     this.centringCross = [];
     this.removeShapes = this.removeShapes.bind(this);
+
+    // UI state
+    this.state = {
+      imgSrc: this.computeMjpegSource(),
+    };
   }
 
   componentDidMount() {
@@ -100,6 +112,7 @@ export default class SampleImage extends React.Component {
 
     window.initJSMpeg = this.initJSMpeg;
     this.initJSMpeg();
+    this.bindVideoHandlers();
   }
 
   UNSAFE_componentWillReceiveProps(nextProps) {
@@ -119,6 +132,21 @@ export default class SampleImage extends React.Component {
     // Initialize JSMpeg for decoding the MPEG1 stream
     if (prevProps.videoFormat !== 'MPEG1') {
       this.initJSMpeg();
+    }
+
+    this.bindVideoHandlers();
+
+    // If MJPEG URL inputs change, update controlled src so React doesn't trigger extra requests
+    if (
+      this.props.videoFormat !== 'MPEG1' &&
+      (prevProps.videoURL !== this.props.videoURL ||
+        prevProps.videoHash !== this.props.videoHash)
+    ) {
+      const base = this.computeMjpegSource();
+      // Only update if it actually changed to avoid unnecessary renders
+      if (this.state.imgSrc && !this.state.imgSrc.startsWith(base)) {
+        this.setState({ imgSrc: base });
+      }
     }
 
     this.renderSampleView();
@@ -155,6 +183,13 @@ export default class SampleImage extends React.Component {
     imageOverlay.removeEventListener('dblclick', this.goToBeam);
 
     window.initJSMpeg = null;
+
+    // Cleanup auto-reconnect timer and handlers
+    this.clearReconnect();
+    const img = document.querySelector('#sample-img');
+    if (img) {
+      img.removeEventListener('error', this.onImgError);
+    }
   }
 
   onMouseMove(options) {
@@ -774,14 +809,8 @@ export default class SampleImage extends React.Component {
   }
 
   createVideoPlayerContainer(format) {
-    let source = '/mxcube/api/v0.1/sampleview/camera/subscribe';
-
-    if (this.props.videoURL !== '') {
-      source = `${this.props.videoURL}/${this.props.videoHash}`;
-    }
-
     let result = (
-      <img id="sample-img" className="img" src={source} alt="SampleView" />
+      <img id="sample-img" className="img" src={this.state.imgSrc} alt="SampleView" />
     );
 
     if (format === 'MPEG1') {
@@ -789,6 +818,14 @@ export default class SampleImage extends React.Component {
     }
 
     return result;
+  }
+
+  computeMjpegSource() {
+    let source = '/mxcube/api/v0.1/sampleview/camera/subscribe';
+    if (this.props.videoURL !== '') {
+      source = `${this.props.videoURL}/${this.props.videoHash}`;
+    }
+    return source;
   }
 
   initJSMpeg() {
@@ -819,36 +856,84 @@ export default class SampleImage extends React.Component {
   }
 
   handleRefreshCamera() {
-    // Reconnect/reload the video feed depending on format
     if (this.props.videoFormat === 'MPEG1') {
-      // Reinitialize JSMpeg player (stop handled inside init)
-      try {
-        if (this.player) {
-          this.player.destroy?.();
-          this.player = null;
-        }
-      } catch {
-        // ignore
-      }
-      this.initJSMpeg();
-    } else {
-      // MJPEG image stream: reload the <img> src to force reconnect
-      const img = document.querySelector('#sample-img');
-      if (img && img.tagName === 'IMG') {
-        let source = '/mxcube/api/v0.1/sampleview/camera/subscribe';
-        if (this.props.videoURL !== '') {
-          source = `${this.props.videoURL}/${this.props.videoHash}`;
-        }
+      return;
+    }
+    const img = document.querySelector('#sample-img');
+    if (img && img.tagName === 'IMG') {
+      const source = this.computeMjpegSource();
 
-        // Cache-bust and force reconnect
-        const newSrc = `${source}${source.includes('?') ? '&' : '?'}_=${Date.now()}`;
-        // Briefly clear to ensure reload even if URL matches
-        img.src = '';
-        // Next tick set new source
-        setTimeout(() => {
-          img.src = newSrc;
-        }, 0);
+      // Build URL with timestamp to avoid caching
+      const newSrc = `${source}${source.includes('?') ? '&' : '?'}_=${Date.now()}`;
+
+      // In case the IMG/network stack is stuck after an error, replace the node entirely
+      const widthStyle = img.style.width;
+      const heightStyle = img.style.height;
+
+      // 1) detach old error handler and create a fresh IMG element
+      img.removeEventListener('error', this.onImgError);
+      // Explicitly close previous connection
+      try {
+        // eslint-disable-next-line unicorn/prefer-add-event-listener
+        img.src = 'about:blank';
+      } catch {}
+      const freshImg = img.cloneNode(false);
+      freshImg.style.width = widthStyle;
+      freshImg.style.height = heightStyle;
+      freshImg.alt = img.alt || 'SampleView';
+
+      const parent = img.parentNode;
+      if (parent) {
+        img.replaceWith(freshImg);
       }
+
+      freshImg.addEventListener('error', this.onImgError);
+      setTimeout(() => {
+        freshImg.src = newSrc;
+      }, 0);
+
+      this.setState({ imgSrc: newSrc });
+    }
+  }
+
+  handleManualRefreshCamera() {
+    this.clearReconnect();
+    this.reconnectAttempts = 0;
+    this.handleRefreshCamera();
+  }
+
+  onImgError() {
+    // Image stream failed; try to reconnect
+    if (this.reconnectAttempts >= 1) {
+      return;
+    }
+    this.reconnectAttempts = 1;
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.handleRefreshCamera();
+    }, 1000);
+  }
+
+  clearReconnect() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    this.reconnectAttempts = 0;
+  }
+
+  bindVideoHandlers() {
+    if (this.props.videoFormat === 'MPEG1') {
+      return;
+    }
+    const img = document.querySelector('#sample-img');
+    if (img && img.tagName === 'IMG') {
+      img.removeEventListener('error', this.onImgError);
+      img.addEventListener('error', this.onImgError);
     }
   }
 
@@ -988,7 +1073,7 @@ export default class SampleImage extends React.Component {
             />
             {this.createVideoPlayerContainer(this.props.videoFormat)}
 
-            <SampleControls canvas={this.canvas} onRefreshCamera={this.handleRefreshCamera} />
+            <SampleControls canvas={this.canvas} onRefreshCamera={this.handleManualRefreshCamera} />
             <div>{this.centringMessage()}</div>
 
             <canvas id="canvas" className="coveringCanvas" />
