@@ -42,7 +42,8 @@ export default class SampleImage extends React.Component {
     this.configureGrid = this.configureGrid.bind(this);
     this.updateGridResults = this.updateGridResults.bind(this);
     this.selectedGrid = this.selectedGrid.bind(this);
-    this.initJSMpeg = this.initJSMpeg.bind(this);
+  this.initJSMpeg = this.initJSMpeg.bind(this);
+  this.handleRefreshCamera = this.handleRefreshCamera.bind(this);
     this.centringMessage = this.centringMessage.bind(this);
     this.selectShape = this.selectShape.bind(this);
     this.deSelectShape = this.deSelectShape.bind(this);
@@ -817,6 +818,40 @@ export default class SampleImage extends React.Component {
     }
   }
 
+  handleRefreshCamera() {
+    // Reconnect/reload the video feed depending on format
+    if (this.props.videoFormat === 'MPEG1') {
+      // Reinitialize JSMpeg player (stop handled inside init)
+      try {
+        if (this.player) {
+          this.player.destroy?.();
+          this.player = null;
+        }
+      } catch {
+        // ignore
+      }
+      this.initJSMpeg();
+    } else {
+      // MJPEG image stream: reload the <img> src to force reconnect
+      const img = document.querySelector('#sample-img');
+      if (img && img.tagName === 'IMG') {
+        let source = '/mxcube/api/v0.1/sampleview/camera/subscribe';
+        if (this.props.videoURL !== '') {
+          source = `${this.props.videoURL}/${this.props.videoHash}`;
+        }
+
+        // Cache-bust and force reconnect
+        const newSrc = `${source}${source.includes('?') ? '&' : '?'}_=${Date.now()}`;
+        // Briefly clear to ensure reload even if URL matches
+        img.src = '';
+        // Next tick set new source
+        setTimeout(() => {
+          img.src = newSrc;
+        }, 0);
+      }
+    }
+  }
+
   preventAction(e) {
     e.preventDefault();
     e.stopPropagation();
@@ -953,7 +988,7 @@ export default class SampleImage extends React.Component {
             />
             {this.createVideoPlayerContainer(this.props.videoFormat)}
 
-            <SampleControls canvas={this.canvas} />
+            <SampleControls canvas={this.canvas} onRefreshCamera={this.handleRefreshCamera} />
             <div>{this.centringMessage()}</div>
 
             <canvas id="canvas" className="coveringCanvas" />

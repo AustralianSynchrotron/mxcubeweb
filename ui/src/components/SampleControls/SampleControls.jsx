@@ -12,7 +12,7 @@ import { useShowControl } from './utils';
 import styles from './SampleControls.module.css';
 
 function SampleControls(props) {
-  const { canvas } = props;
+  const { canvas, onRefreshCamera } = props;
 
   return (
     <div className={styles.controls}>
@@ -28,6 +28,15 @@ function SampleControls(props) {
         <LightControl label="Frontlight" hwoId="diffractometer.frontlight" />
       )}
       {useShowControl('video_size') && <VideoSizeControl />}
+      <button
+        type="button"
+        className={styles.controlBtn}
+        onClick={onRefreshCamera}
+        title="Reload Camera"
+        aria-label="Reload Camera"
+      >
+        ↻ Reload Camera
+      </button>
     </div>
   );
 }
