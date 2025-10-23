@@ -47,6 +47,7 @@ export default class SampleImage extends React.Component {
   this.handleManualRefreshCamera = this.handleManualRefreshCamera.bind(this);
   this.onImgError = this.onImgError.bind(this);
   this.bindVideoHandlers = this.bindVideoHandlers.bind(this);
+  this.onImgLoad = this.onImgLoad.bind(this);
   this.clearReconnect = this.clearReconnect.bind(this);
     this.centringMessage = this.centringMessage.bind(this);
     this.selectShape = this.selectShape.bind(this);
@@ -72,6 +73,7 @@ export default class SampleImage extends React.Component {
     // UI state
     this.state = {
       imgSrc: this.computeMjpegSource(),
+      isLoading: this.props.videoFormat !== 'MPEG1',
     };
   }
 
@@ -189,6 +191,7 @@ export default class SampleImage extends React.Component {
     const img = document.querySelector('#sample-img');
     if (img) {
       img.removeEventListener('error', this.onImgError);
+      img.removeEventListener('load', this.onImgLoad);
     }
   }
 
@@ -866,17 +869,17 @@ export default class SampleImage extends React.Component {
       // Build URL with timestamp to avoid caching
       const newSrc = `${source}${source.includes('?') ? '&' : '?'}_=${Date.now()}`;
 
-      // In case the IMG/network stack is stuck after an error, replace the node entirely
+      this.setState({ isLoading: true });
+
       const widthStyle = img.style.width;
       const heightStyle = img.style.height;
 
-      // 1) detach old error handler and create a fresh IMG element
       img.removeEventListener('error', this.onImgError);
-      // Explicitly close previous connection
       try {
-        // eslint-disable-next-line unicorn/prefer-add-event-listener
+        // Explicitly close previous connection
         img.src = 'about:blank';
       } catch {}
+      // In case the image is stuck after an error, replace the node entirely
       const freshImg = img.cloneNode(false);
       freshImg.style.width = widthStyle;
       freshImg.style.height = heightStyle;
@@ -888,6 +891,7 @@ export default class SampleImage extends React.Component {
       }
 
       freshImg.addEventListener('error', this.onImgError);
+      freshImg.addEventListener('load', this.onImgLoad);
       setTimeout(() => {
         freshImg.src = newSrc;
       }, 0);
@@ -903,7 +907,7 @@ export default class SampleImage extends React.Component {
   }
 
   onImgError() {
-    // Image stream failed; try to reconnect
+    // Try to reconnect camera stream
     if (this.reconnectAttempts >= 1) {
       return;
     }
@@ -912,10 +916,17 @@ export default class SampleImage extends React.Component {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+    this.setState({ isLoading: true });
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.handleRefreshCamera();
     }, 1000);
+  }
+
+  onImgLoad() {
+    // Stream connected successfully
+    this.clearReconnect();
+    this.setState({ isLoading: false });
   }
 
   clearReconnect() {
@@ -933,7 +944,9 @@ export default class SampleImage extends React.Component {
     const img = document.querySelector('#sample-img');
     if (img && img.tagName === 'IMG') {
       img.removeEventListener('error', this.onImgError);
+      img.removeEventListener('load', this.onImgLoad);
       img.addEventListener('error', this.onImgError);
+      img.addEventListener('load', this.onImgLoad);
     }
   }
 
@@ -1054,7 +1067,7 @@ export default class SampleImage extends React.Component {
     return (
       <div>
         <div className="outsideWrapper" id="outsideWrapper">
-          <div className="insideWrapper" id="insideWrapper">
+          <div className="insideWrapper" id="insideWrapper" style={{ position: 'relative' }}>
             <GridForm
               show={this.props.drawGrid}
               getGridOverlayOpacity={this.getGridOverlayOpacity}
@@ -1072,8 +1085,31 @@ export default class SampleImage extends React.Component {
               selectedGrids={this.props.selectedGrids.map((grid) => grid.id)}
             />
             {this.createVideoPlayerContainer(this.props.videoFormat)}
+            {this.state.isLoading && (
+              <div
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'rgba(0,0,0,0.2)',
+                  color: '#fff',
+                  fontWeight: 600,
+                  pointerEvents: 'none',
+                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+                }}
+                aria-live="polite"
+              >
+                Loading camera…
+              </div>
+            )}
 
-            <SampleControls canvas={this.canvas} onRefreshCamera={this.handleManualRefreshCamera} />
+            <SampleControls
+              canvas={this.canvas}
+              onRefreshCamera={this.handleManualRefreshCamera}
+              refreshLoading={this.state.isLoading}
+            />
             <div>{this.centringMessage()}</div>
 
             <canvas id="canvas" className="coveringCanvas" />

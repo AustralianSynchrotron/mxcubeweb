@@ -12,7 +12,7 @@ import { useShowControl } from './utils';
 import styles from './SampleControls.module.css';
 
 function SampleControls(props) {
-  const { canvas, onRefreshCamera } = props;
+  const { canvas, onRefreshCamera, refreshLoading } = props;
 
   return (
     <div className={styles.controls}>
@@ -32,10 +32,12 @@ function SampleControls(props) {
         type="button"
         className={styles.controlBtn}
         onClick={onRefreshCamera}
-        title="Reload Camera"
-        aria-label="Reload Camera"
+        title={refreshLoading ? 'Loading Camera' : 'Reload Camera'}
+        aria-label={refreshLoading ? 'Loading Camera' : 'Reload Camera'}
+        aria-busy={refreshLoading || undefined}
+        disabled={Boolean(refreshLoading)}
       >
-        ↻ Reload Camera
+        {refreshLoading ? '↻ Loading…' : '↻ Reload Camera'}
       </button>
     </div>
   );
