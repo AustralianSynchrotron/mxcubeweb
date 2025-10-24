@@ -49,6 +49,8 @@ export default class SampleImage extends React.Component {
   this.bindVideoHandlers = this.bindVideoHandlers.bind(this);
   this.onImgLoad = this.onImgLoad.bind(this);
   this.clearReconnect = this.clearReconnect.bind(this);
+  this.startRefreshTimeout = this.startRefreshTimeout.bind(this);
+  this.clearRefreshTimeout = this.clearRefreshTimeout.bind(this);
     this.centringMessage = this.centringMessage.bind(this);
     this.selectShape = this.selectShape.bind(this);
     this.deSelectShape = this.deSelectShape.bind(this);
@@ -67,6 +69,8 @@ export default class SampleImage extends React.Component {
   this.reconnectAttempts = 0;
   this.reconnectTimer = null;
   this.maxReconnectDelay = 30_000; // 30s cap
+  this.refreshTimeout = null;
+  this.refreshTimeoutMs = 10_000; // camera timeout
     this.centringCross = [];
     this.removeShapes = this.removeShapes.bind(this);
 
@@ -188,6 +192,7 @@ export default class SampleImage extends React.Component {
 
     // Cleanup auto-reconnect timer and handlers
     this.clearReconnect();
+    this.clearRefreshTimeout();
     const img = document.querySelector('#sample-img');
     if (img) {
       img.removeEventListener('error', this.onImgError);
@@ -869,6 +874,7 @@ export default class SampleImage extends React.Component {
       // Build URL with timestamp to avoid caching
       const newSrc = `${source}${source.includes('?') ? '&' : '?'}_=${Date.now()}`;
 
+      this.clearRefreshTimeout();
       this.setState({ isLoading: true });
 
       const widthStyle = img.style.width;
@@ -897,6 +903,8 @@ export default class SampleImage extends React.Component {
       }, 0);
 
       this.setState({ imgSrc: newSrc });
+
+      this.startRefreshTimeout();
     }
   }
 
@@ -907,25 +915,14 @@ export default class SampleImage extends React.Component {
   }
 
   onImgError() {
-    // Try to reconnect camera stream
-    if (this.reconnectAttempts >= 1) {
-      return;
-    }
-    this.reconnectAttempts = 1;
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-    this.setState({ isLoading: true });
-    this.reconnectTimer = setTimeout(() => {
-      this.reconnectTimer = null;
-      this.handleRefreshCamera();
-    }, 1000);
+    this.clearRefreshTimeout();
+    this.setState({ isLoading: false });
   }
 
   onImgLoad() {
     // Stream connected successfully
     this.clearReconnect();
+    this.clearRefreshTimeout();
     this.setState({ isLoading: false });
   }
 
@@ -954,6 +951,23 @@ export default class SampleImage extends React.Component {
     e.preventDefault();
     e.stopPropagation();
     e.nativeEvent.stopImmediatePropagation();
+  }
+
+  startRefreshTimeout() {
+    this.clearRefreshTimeout();
+    this.refreshTimeout = setTimeout(() => {
+      this.refreshTimeout = null;
+      if (this.state.isLoading) {
+        this.setState({ isLoading: false });
+      }
+    }, this.refreshTimeoutMs);
+  }
+
+  clearRefreshTimeout() {
+    if (this.refreshTimeout) {
+      clearTimeout(this.refreshTimeout);
+      this.refreshTimeout = null;
+    }
   }
 
   renderSampleView() {
@@ -1090,14 +1104,9 @@ export default class SampleImage extends React.Component {
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  display: 'grid',
+                  placeItems: 'center',
                   background: 'rgba(0,0,0,0.2)',
-                  color: '#fff',
-                  fontWeight: 600,
-                  pointerEvents: 'none',
-                  textShadow: '0 1px 2px rgba(0,0,0,0.5)',
                 }}
                 aria-live="polite"
               >
