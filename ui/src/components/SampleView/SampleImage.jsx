@@ -66,11 +66,9 @@ export default class SampleImage extends React.Component {
     this.girdOrigin = null;
     this.lineGroup = null;
     this.player = null;
-  this.reconnectAttempts = 0;
-  this.reconnectTimer = null;
-  this.maxReconnectDelay = 30_000; // 30s cap
-  this.refreshTimeout = null;
-  this.refreshTimeoutMs = 10_000; // camera timeout
+    this.reconnectTimer = null;
+    this.refreshTimeout = null;
+    this.refreshTimeoutMs = 10_000;
     this.centringCross = [];
     this.removeShapes = this.removeShapes.bind(this);
 
@@ -910,7 +908,6 @@ export default class SampleImage extends React.Component {
 
   handleManualRefreshCamera() {
     this.clearReconnect();
-    this.reconnectAttempts = 0;
     this.handleRefreshCamera();
   }
 
@@ -920,7 +917,6 @@ export default class SampleImage extends React.Component {
   }
 
   onImgLoad() {
-    // Stream connected successfully
     this.clearReconnect();
     this.clearRefreshTimeout();
     this.setState({ isLoading: false });
@@ -931,7 +927,6 @@ export default class SampleImage extends React.Component {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
-    this.reconnectAttempts = 0;
   }
 
   bindVideoHandlers() {
