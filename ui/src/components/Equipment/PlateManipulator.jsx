@@ -191,7 +191,6 @@ export default function PlateManipulator(props) {
     selectedCol,
     selectedDrop,
   );
-
   const _numberOfDrops = Array.from(
     { length: plate.numberOfDrops },
     (_, i) => i + 1,
@@ -254,14 +253,17 @@ export default function PlateManipulator(props) {
       </Button>
     ));
 
-  let dropPosy = 0;
-  if (plate.name === 'Crystal QuickX') {
-    dropPosy = 95;
-  } else if (plate.name === 'Greiner Impact 1536') {
-    dropPosy = 135;
-  } else {
-    dropPosy = 70;
-  }
+  // Previously: hardcoded per-plate spacing which clipped extra drops
+  const height = 225;
+  const topBottomMargin = 10;
+  const availableHeight = Math.max(
+    0,
+    height - topBottomMargin,
+  );
+  const dropPosy = Math.max(
+    20, // avoid overlap
+    Math.floor(availableHeight / _numberOfDrops.length),
+  );
 
   const renderWellPlate = () => (
     <div
