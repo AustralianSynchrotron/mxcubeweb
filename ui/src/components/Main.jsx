@@ -1,6 +1,3 @@
-import 'react-chat-widget/lib/styles.css';
-import './rachat.css';
-
 import { useEffect } from 'react';
 import { Stack } from 'react-bootstrap';
 import { useDispatch, useSelector } from 'react-redux';
@@ -16,7 +13,7 @@ import ResumeQueueDialog from '../containers/ResumeQueueDialog';
 import TaskContainer from '../containers/TaskContainer';
 import WorkflowParametersDialog from '../containers/WorkflowParametersDialog';
 import diagonalNoise from '../img/diagonal-noise.png';
-import ChatWidget from './ChatWidget';
+import ChatWidget from './ChatComponent/ChatComponent';
 import { DataCollectionResultDialog } from './DataCollectionResult/DataCollectionResultDialog';
 import LoadingScreen from './LoadingScreen/LoadingScreen';
 import SelectProposal from './LoginForm/SelectProposal';

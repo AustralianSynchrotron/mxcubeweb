@@ -1,5 +1,4 @@
 /* eslint-disable promise/prefer-await-to-callbacks */
-import { addResponseMessage } from 'react-chat-widget';
 import { connect } from 'socket.io-client';
 
 import {
@@ -32,7 +31,7 @@ import {
   stopQueue,
 } from './actions/queue';
 import { collapseItem, showResumeQueueDialog } from './actions/queueGUI';
-import { getRaState, incChatMessageCount } from './actions/remoteAccess';
+import { addChatMessage, getRaState } from './actions/remoteAccess';
 import {
   setLoadedSample,
   setSCGlobalState,
@@ -56,6 +55,7 @@ import {
   showWorkflowParametersDialog,
   updateGphlWorkflowParametersDialog,
 } from './actions/workflow';
+import { processChatMessageRecord } from './components/ChatComponent/chatMessages';
 import { CLICK_CENTRING } from './constants';
 import { store } from './store';
 
@@ -122,11 +122,12 @@ class ServerIO {
 
     this.hwrSocket.on('ra_chat_message', (record) => {
       const { username } = store.getState().login.user;
-      if (record.username !== username && !record.read) {
-        addResponseMessage(
-          `${record.date} **${record.nickname}:** \n\n ${record.message}`,
+      if (record.username !== username) {
+        const message = processChatMessageRecord(
+          { ...record, read: false },
+          username,
         );
-        dispatch(incChatMessageCount());
+        dispatch(addChatMessage(message));
       }
     });
 
@@ -330,19 +331,28 @@ class ServerIO {
     });
 
     this.hwrSocket.on('observerLogout', (observer) => {
-      addResponseMessage(
-        `**${observer.nickname}** (${observer.ip}) disconnected.`,
-      );
+      const message = {
+        id: `sys-${Date.now()}-${Math.random()}`,
+        type: 'response',
+        text: `**${observer.nickname}** (${observer.ip}) disconnected.`,
+        date: new Date().toISOString(),
+      };
+      dispatch(addChatMessage(message));
     });
 
     this.hwrSocket.on('observerLogin', (observer) => {
-      if (observer.nickname && observer.ip) {
-        addResponseMessage(
-          `**${observer.nickname}** (${observer.ip}) connected.`,
-        );
-      } else {
-        addResponseMessage(`${observer.nickname} connecting ...`);
-      }
+      const text =
+        observer.nickname && observer.ip
+          ? `**${observer.nickname}** (${observer.ip}) connected.`
+          : `${observer.nickname} connecting ...`;
+
+      const message = {
+        id: `sys-${Date.now()}-${Math.random()}`,
+        type: 'response',
+        text,
+        date: new Date().toISOString(),
+      };
+      dispatch(addChatMessage(message));
     });
 
     this.hwrSocket.on('forceSignout', () => {

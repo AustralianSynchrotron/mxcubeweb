@@ -1,6 +1,7 @@
 import {
   fetchRemoteAccessState,
   sendCancelControlRequest,
+  sendChatMessage as apiSendChatMessage,
   sendGiveControl,
   sendLogoutUser,
   sendRequestControl,
@@ -11,6 +12,7 @@ import {
   sendUpdateNickname,
   sendUpdateTimeoutGivesControl,
 } from '../api/remoteAccess';
+import { processChatMessageRecord } from '../components/ChatComponent/chatMessages';
 import { showErrorPanel } from './general';
 import { getLoginInfo } from './login';
 import { showWaitDialog } from './waitDialog';
@@ -108,13 +110,50 @@ export function updateTimeoutGivesControl(timeoutGivesControl) {
   };
 }
 
-export function resetChatMessageCount() {
-  return async (dispatch) => {
-    await sendSetAllMessagesRead();
-    dispatch({ type: 'RESET_CHAT_MESSAGE_COUNT' });
+export function setChatMessages(messages) {
+  return { type: 'SET_CHAT_MESSAGES', messages };
+}
+
+export function addChatMessage(message) {
+  return { type: 'ADD_CHAT_MESSAGE', message };
+}
+
+export function processFetchedChatMessages(fetchedMessages, username) {
+  return (dispatch) => {
+    const built = fetchedMessages.map((entry) =>
+      processChatMessageRecord(entry, username),
+    );
+
+    dispatch(setChatMessages(built));
   };
 }
 
-export function incChatMessageCount(count = 1) {
-  return { type: 'INC_CHAT_MESSAGE_COUNT', count };
+export function sendChatMessage(message, username) {
+  return async (dispatch) => {
+    await apiSendChatMessage(message, username);
+
+    const newMessage = {
+      id: `u-${Date.now()}-${Math.random()}`,
+      type: 'user',
+      name: 'You',
+      message,
+      isSelf: true,
+      read: true,
+      date: new Date().toISOString(),
+    };
+
+    dispatch(addChatMessage(newMessage));
+  };
+}
+
+export function markAllAsRead() {
+  return async (dispatch, getState) => {
+    const { messages } = getState().remoteAccess;
+
+    const updatedMessages = messages.map((msg) => ({ ...msg, read: true }));
+
+    dispatch(setChatMessages(updatedMessages));
+
+    await sendSetAllMessagesRead();
+  };
 }
