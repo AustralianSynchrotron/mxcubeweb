@@ -58,24 +58,24 @@
     "wretch": "2.7.0"
   },
   "devDependencies": {
-    "@babel/preset-react": "7.24.7",
-    "@testing-library/cypress": "10.0.1",
-    "@testing-library/jest-dom": "^5.16.2",
-    "@testing-library/react": "^12.1.2",
+    "@babel/preset-react": "7.28.5",
+    "@testing-library/cypress": "10.1.0",
+    "@testing-library/jest-dom": "^5.16.5",
+    "@testing-library/react": "^12.1.5",
     "@testing-library/user-event": "^13.5.0",
     "@types/react": "17.0.60",
     "@types/react-dom": "17.0.20",
-    "@types/react-redux": "7.1.33",
+    "@types/react-redux": "7.1.34",
     "@vitejs/plugin-react-swc": "3.7.0",
-    "cypress": "13.13.2",
-    "cypress-terminal-report": "6.1.2",
-    "eslint": "8.42.0",
+    "cypress": "13.15.1",
+    "cypress-terminal-report": "6.2.0",
+    "eslint": "8.57.1",
     "eslint-config-galex": "4.5.2",
-    "prettier": "3.0.0",
+    "prettier": "3.6.2",
     "prop-types": "15.8.1",
     "vite": "5.4.15",
     "vite-plugin-eslint": "1.8.1",
-    "wait-on": "7.0.1"
+    "wait-on": "7.2.0"
   },
   "browserslist": {
     "production": [
