@@ -69,7 +69,7 @@ function MXNavbar() {
               <span className="me-2 fas fa-lg fa-question-circle" />
               Help
             </Nav.Link>
-            <Nav.Link
+            {/* <Nav.Link
               as={NavLink}
               className={styles.navLink}
               to="/remoteaccess"
@@ -84,7 +84,7 @@ function MXNavbar() {
                 )}
               </span>
               Remote
-            </Nav.Link>
+            </Nav.Link> */}
             {isUserLogin && (
               <button
                 className={styles.navBtn}

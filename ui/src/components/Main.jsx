@@ -78,7 +78,7 @@ function Main() {
         <Outlet />
       </Stack>
 
-      <ChatWidget />
+      {/* <ChatWidget /> */}
     </div>
   );
 }

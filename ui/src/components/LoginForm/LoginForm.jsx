@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Form, InputGroup, Alert, Button } from 'react-bootstrap';
 
 import { Controller, useForm } from 'react-hook-form';
@@ -25,17 +25,37 @@ function LoginForm() {
 
   const useSSO = useSelector((state) => state.login.useSSO);
 
+  // Console was showing this warning:
+  // Can't perform a React state update on an unmounted component. 
+  // This is a no-op, but it indicates a memory leak in your application. 
+  // To fix, cancel all subscriptions and asynchronous tasks 
+  // in a useEffect cleanup function.
+
+  // This fixes the warning:
+  const isMounted = useRef(true);
+  useEffect(() => {
+    isMounted.current = true;
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
+
   async function handleSubmit(data) {
     setLoading(true);
     try {
       await dispatch(logIn(data.username.toLowerCase(), data.password));
     } finally {
-      setLoading(false);
+      if (isMounted.current) setLoading(false);
     }
   }
 
   async function handleSingleSignOn() {
-    await dispatch(ssoLogIn());
+    setLoading(true);
+    try {
+      await dispatch(ssoLogIn());
+    } finally {
+      if (isMounted.current) setLoading(false);
+    }
   }
 
   return (
