@@ -3843,8 +3843,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "v1.195.0.46"
-resolved_reference = "3b253652a204292850aa6df87d5699aef0481803"
+reference = "fix_camera"
+resolved_reference = "627c060e54ace8f8795ae8ad2989492b193fc395"
 
 [[package]]
 name = "myst-parser"
@@ -7486,4 +7486,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "9c3f770ae3654bb78c4d223053b0d859dfc55af7e254998b981fa92579682f43"
+content-hash = "b530d6c79c33aa6b21728f325dcc3c48fa702c36858d201676e58a2dcae2d688"
