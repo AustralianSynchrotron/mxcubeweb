@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button, Dropdown, Card, Stack } from 'react-bootstrap';
 import Draggable from 'react-draggable';
-
 import { MdClose } from 'react-icons/md';
-
 import styles from './beamlineCamera.module.css';
 import pip from './picture_in_picture.svg';
 
@@ -18,7 +16,6 @@ function handleImageClick(url, width, height) {
 
 export default function BeamlineCamera(props) {
   const { cameraSetup } = props;
-
   const [showVideoModal, setShowVideoModal] = useState({});
 
   function handleShowVideoCard(key, value) {
@@ -26,10 +23,9 @@ export default function BeamlineCamera(props) {
   }
 
   function renderVideo() {
-    const DraggableElements = [];
-    cameraSetup.components.forEach((camera, vIndex) => {
-      DraggableElements.push(
-        showVideoModal[vIndex] ? (
+    const DraggableElements = cameraSetup.components.map((camera, vIndex) => {
+      if (showVideoModal[vIndex]) {
+        return (
           <div
             key={`draggable-video_${camera.label}`}
             className="draggableHandle"
@@ -46,7 +42,7 @@ export default function BeamlineCamera(props) {
                           handleImageClick(
                             camera.url,
                             camera.width,
-                            camera.height,
+                            camera.height
                           )
                         }
                         size="sm"
@@ -67,7 +63,7 @@ export default function BeamlineCamera(props) {
                 </Card.Header>
                 <Card.Body>
                   {camera.format !== 'mp4' ? (
-                    <img
+                    <CameraStreamImg
                       src={camera.url}
                       alt={camera.label}
                       width={camera.width}
@@ -85,10 +81,15 @@ export default function BeamlineCamera(props) {
               </Card>
             </Draggable>
           </div>
-        ) : null,
-      );
+        );
+      }
+      return null;
     });
-    return DraggableElements;
+    // Only use fragment if more than one child
+    if (DraggableElements.filter(Boolean).length > 1) {
+      return <>{DraggableElements}</>;
+    }
+    return DraggableElements.find(Boolean) || null;
   }
 
   if (!cameraSetup || cameraSetup.components.length <= 0) {
@@ -120,11 +121,56 @@ export default function BeamlineCamera(props) {
             >
               {camera.label} <i className="fas fa-video" />
             </Dropdown.Item>,
-            cameraSetup.components.length > cIndex + 1 && <Dropdown.Divider />,
+            cameraSetup.components.length > cIndex + 1 && <Dropdown.Divider key={`divider_${camera.label}`} />,
           ])}
         </Dropdown.Menu>
       </Dropdown>
       {renderVideo()}
     </>
+  );
+}
+
+// CameraStreamImg: <img> with auto-reconnect on error/abort and timeout
+function CameraStreamImg({ src, alt, width, height }) {
+  const [imgSrc, setImgSrc] = useState(`${src}?_t=${Date.now()}`);
+  const imgRef = useRef();
+
+  // Update src if the prop changes
+  useEffect(() => {
+    setImgSrc(`${src}?_t=${Date.now()}`);
+  }, [src]);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    if (!img) {
+      return undefined;
+    }
+    let timeoutId;
+    const reload = () => setImgSrc(`${src}?_t=${Date.now()}`);
+    const onLoad = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(reload, 10_000); // 10s timeout
+    };
+    img.addEventListener('error', reload);
+    img.addEventListener('abort', reload);
+    img.addEventListener('load', onLoad);
+    timeoutId = setTimeout(reload, 10_000);
+    return () => {
+      img.removeEventListener('error', reload);
+      img.removeEventListener('abort', reload);
+      img.removeEventListener('load', onLoad);
+      clearTimeout(timeoutId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imgSrc, src]);
+  return (
+    <img
+      ref={imgRef}
+      src={imgSrc}
+      alt={alt}
+      width={width}
+      height={height}
+      style={{ background: '#222' }}
+    />
   );
 }
