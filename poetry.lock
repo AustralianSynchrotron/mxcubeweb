@@ -3752,7 +3752,7 @@ resolved_reference = "0933859b08ce3509a9aae7e7f0018d3b4d353b7c"
 
 [[package]]
 name = "mx3-beamline-library"
-version = "2.4.4"
+version = "2.4.6"
 description = "Ophyd devices and bluesky plans."
 optional = false
 python-versions = ">=3.11,<3.13"
@@ -3795,12 +3795,12 @@ as-dependencies = ["as-acquisition-library @ git+https://bitbucket.synchrotron.o
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git"
-reference = "v2.4.4"
-resolved_reference = "b66bd30b8185ee6c29500534e3e2d2143702ec32"
+reference = "v2.4.6"
+resolved_reference = "b3550fa82ad2e2da5da11e5803c4906a1e8383d1"
 
 [[package]]
 name = "mxcubecore"
-version = "1.195.0.48"
+version = "1.195.0.49"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.12"
@@ -3820,7 +3820,7 @@ jsonschema = "^4.17.1"
 lucid3 = "^3.0.0"
 lxml = "^4.9.1"
 matplotlib = "^3.6.2"
-mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v2.4.4", markers = "python_version == \"3.11\""}
+mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v2.4.6", markers = "python_version == \"3.11\""}
 numpy = {version = "^2.0.0", markers = "python_version == \"3.11\""}
 Pillow = "^10.4.0"
 prefect = {version = "3.4.22", optional = true, markers = "python_version >= \"3.10\""}
@@ -3843,8 +3843,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "v1.195.0.48"
-resolved_reference = "aa37146c595644bee1ca2fd03b8eff32adfc501d"
+reference = "v1.195.0.49"
+resolved_reference = "2a67648a9ee75bc1e2a1c9717b46071e04a64e0a"
 
 [[package]]
 name = "myst-parser"
@@ -7486,4 +7486,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "09d06c7831b9f55639a79e30deef8c470131e28b7f915a4d1932663c83974bec"
+content-hash = "0401a6868abb262963e6ed41c749c33e0b931da25fd90b5b44e54387b1314719"
