@@ -13,8 +13,6 @@ function PhaseInput() {
   const state = useSelector(
     (state) => state.beamline.hardwareObjects.diffractometer?.state,
   );
-  // Disable the input when the phase is changing
-  const disabled = state === 'BUSY';
 
   return (
     <Form.Select
@@ -22,7 +20,7 @@ function PhaseInput() {
       className={styles.select}
       value={value}
       data-busy={state === 'BUSY' || undefined}
-      disabled={disabled}
+      disabled={state === 'BUSY'}
       onChange={(evt) => {
         if (evt.target.value !== 'Unknown') {
           dispatch(changeCurrentPhase(evt.target.value));
