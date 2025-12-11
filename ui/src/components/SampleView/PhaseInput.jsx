@@ -20,6 +20,7 @@ function PhaseInput() {
       className={styles.select}
       value={value}
       data-busy={state === 'BUSY' || undefined}
+      disabled={state === 'BUSY'}
       onChange={(evt) => {
         if (evt.target.value !== 'Unknown') {
           dispatch(changeCurrentPhase(evt.target.value));
