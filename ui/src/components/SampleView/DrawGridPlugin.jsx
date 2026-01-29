@@ -169,7 +169,7 @@ export default class DrawGridPlugin {
     this.shapeGroup = null;
     this.include_cell_labels = false;
     this.mouseOverGridLabel = [];
-    this.overlayLevel = 0.2;
+    this.overlayLevel = 0.5;
     this.gridData = _GridData();
     this.scale = 0;
     this.resultType = 'heatmap';
