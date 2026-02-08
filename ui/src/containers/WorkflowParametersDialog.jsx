@@ -10,10 +10,15 @@ import {
 
 import styles from './WorkflowParametersDialog.module.css';
 
+import diagonalNoise from '../img/diagonal-noise.png';
+
 function WorkflowParametersDialog() {
   const dispatch = useDispatch();
   const show = useSelector((state) => state.workflow.showDialog);
   const formData = useSelector((state) => state.workflow.formData);
+  const inControl = useSelector((state) => state.login.user.inControl);
+
+  const readOnly = !inControl;
 
   function submitData(values) {
     dispatch(submitWorkflowParameters(values.formData));
@@ -21,7 +26,10 @@ function WorkflowParametersDialog() {
   }
 
   function handleClose() {
-    dispatch(submitWorkflowParameters({}));
+    // Observers (no control) must not send workflow-cancel commands.
+    if (inControl) {
+      dispatch(submitWorkflowParameters({}));
+    }
     dispatch(showWorkflowParametersDialog(null, false));
   }
 
@@ -31,7 +39,19 @@ function WorkflowParametersDialog() {
         <Modal.Title>{formData ? formData.dialogName : ''}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <div id="form-holder">
+        <div className="position-relative" id="form-holder">
+          {readOnly && (
+            <div
+              aria-hidden
+              className="position-absolute top-0 start-0 w-100 h-100"
+              style={{
+                backgroundImage: `url(${diagonalNoise})`,
+                zIndex: 2,
+                opacity: 0.6,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
           {/* The Liform generates errors when `schema` is empty or null so
               we only create it when show is true and we have a schema to use. */}
           {show && formData && (
@@ -40,6 +60,7 @@ function WorkflowParametersDialog() {
                 validator={validator}
                 schema={formData}
                 formData={formData.initialValues}
+                disabled={readOnly}
                 onSubmit={submitData}
                 onError={console.log('error')} // eslint-disable-line no-console
               />
