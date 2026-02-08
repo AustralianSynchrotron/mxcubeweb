@@ -18,8 +18,6 @@ function WorkflowParametersDialog() {
   const formData = useSelector((state) => state.workflow.formData);
   const inControl = useSelector((state) => state.login.user.inControl);
 
-  const readOnly = !inControl;
-
   function submitData(values) {
     dispatch(submitWorkflowParameters(values.formData));
     dispatch(showWorkflowParametersDialog(null, false));
@@ -40,7 +38,7 @@ function WorkflowParametersDialog() {
       </Modal.Header>
       <Modal.Body>
         <div className="position-relative" id="form-holder">
-          {readOnly && (
+          {!inControl && (
             <div
               aria-hidden
               className="position-absolute top-0 start-0 w-100 h-100"
@@ -60,7 +58,7 @@ function WorkflowParametersDialog() {
                 validator={validator}
                 schema={formData}
                 formData={formData.initialValues}
-                disabled={readOnly}
+                disabled={!inControl}
                 onSubmit={submitData}
                 onError={console.log('error')} // eslint-disable-line no-console
               />

@@ -82,8 +82,6 @@ function GphlWorkflowParametersDialog(props) {
     fetchUpdated,
   } = props;
 
-  const readOnly = !inControl;
-
   const [schema, setSchema] = useState(null);
   const [formState, setFormState] = useState({});
   const [errors, setErrors] = useState();
@@ -110,7 +108,7 @@ function GphlWorkflowParametersDialog(props) {
 
   const handleAbort = useCallback(() => {
     // Observers (no control) must not send workflow-cancel commands.
-    if (readOnly) {
+    if (!inControl) {
       handleHide();
       return;
     }
@@ -123,7 +121,7 @@ function GphlWorkflowParametersDialog(props) {
     };
     updateGphlWorkflowParameters(parameter);
     handleHide();
-  }, [updateGphlWorkflowParameters, handleHide, readOnly]);
+  }, [updateGphlWorkflowParameters, handleHide, inControl]);
 
   const handleFormDataUpdated = useCallback(() => {
     if (updatedFormData) {
@@ -160,7 +158,7 @@ function GphlWorkflowParametersDialog(props) {
   }, [fetchUpdated, handleFormDataUpdated, resetUpdatedGphlWParameters]);
 
   function handleSubmit(e) {
-    if (readOnly) {
+    if (!inControl) {
       e.preventDefault();
       e.stopPropagation();
       return;
@@ -185,7 +183,7 @@ function GphlWorkflowParametersDialog(props) {
   }
 
   async function handleChange(e) {
-    if (readOnly) {
+    if (!inControl) {
       return;
     }
 
@@ -218,7 +216,7 @@ function GphlWorkflowParametersDialog(props) {
 
   const handleIndexingTableChange = useCallback(
     async (value) => {
-      if (readOnly) {
+      if (!inControl) {
         return;
       }
       const newFormState = { ...formState };
@@ -232,12 +230,12 @@ function GphlWorkflowParametersDialog(props) {
       };
       await updateGphlWorkflowParameters(parameter);
     },
-    [setFormState, formData, updateGphlWorkflowParameters, formState, readOnly],
+    [setFormState, formData, updateGphlWorkflowParameters, formState, inControl],
   );
 
   const onSelectRow = useCallback(
     (index, value) => {
-      if (readOnly) {
+      if (!inControl) {
         return;
       }
       let newSelected = [...selected];
@@ -254,7 +252,7 @@ function GphlWorkflowParametersDialog(props) {
       setSelected(newSelected);
       handleIndexingTableChange(updatedValue);
     },
-    [selected, handleIndexingTableChange, readOnly],
+    [selected, handleIndexingTableChange, inControl],
   );
 
   let formName = '';
@@ -308,7 +306,7 @@ function GphlWorkflowParametersDialog(props) {
                                       label={schema.properties[fieldKey].title}
                                       onChange={(e) => handleChange(e)}
                                       checked={formState[fieldKey]}
-                                      disabled={readOnly}
+                                      disabled={!inControl}
                                       data-highlight={
                                         schema.properties[fieldKey].highlight ||
                                         undefined
@@ -320,7 +318,7 @@ function GphlWorkflowParametersDialog(props) {
                                       id={fieldKey}
                                       value={formState[fieldKey]}
                                       onChange={(e) => handleChange(e)}
-                                      disabled={readOnly}
+                                      disabled={!inControl}
                                       data-highlight={
                                         schema.properties[fieldKey].highlight ||
                                         undefined
@@ -356,11 +354,11 @@ function GphlWorkflowParametersDialog(props) {
                                       }
                                       defaultValue={formState[fieldKey]}
                                       readOnly={
-                                        readOnly ||
+                                        !inControl ||
                                         schema.properties[fieldKey].readOnly
                                       }
                                       disabled={
-                                        readOnly ||
+                                        !inControl ||
                                         schema.properties[fieldKey].readOnly
                                       }
                                     />
@@ -396,7 +394,7 @@ function GphlWorkflowParametersDialog(props) {
           <div className="ms-auto">
             <Button
               variant="success"
-              disabled={validated || readOnly}
+              disabled={validated || !inControl}
               type="submit"
             >
               Continue{' '}
@@ -406,7 +404,7 @@ function GphlWorkflowParametersDialog(props) {
             <Button
               variant="outline-secondary"
               onClick={handleAbort}
-              disabled={readOnly}
+              disabled={!inControl}
             >
               {' '}
               Abort{' '}
@@ -424,7 +422,7 @@ function GphlWorkflowParametersDialog(props) {
       </Modal.Header>
       <Modal.Body>
         <div className="m-3 position-relative" id="form-holder">
-          {readOnly && (
+          {!inControl && (
             <div
               aria-hidden
               className="position-absolute top-0 start-0 w-100 h-100"
