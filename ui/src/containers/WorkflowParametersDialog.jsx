@@ -24,7 +24,7 @@ function WorkflowParametersDialog() {
   }
 
   function handleClose() {
-    // Observers (no control) must not send workflow-cancel commands.
+    // mxcubecore treats an empty payload as a cancel.
     if (inControl) {
       dispatch(submitWorkflowParameters({}));
     }

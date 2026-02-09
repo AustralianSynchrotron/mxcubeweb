@@ -24,9 +24,10 @@ def init_route(app, server, url_prefix):
         data = request.get_json()
         app.workflow.submit_parameters(data)
 
-        # Close the dialog for remote and main users when user closes the parameters dialog
+        # Always close the dialog for all connected clients after submit.
+        server.emit("workflowParametersDialog", None, namespace="/hwr")
         if not data:
-            server.emit("workflowParametersDialog", None, namespace="/hwr")
+            # If the user cancelled, refresh the queue state for everyone.
             server.emit(
                 "queue",
                 {"Signal": "update", "message": "all"},
