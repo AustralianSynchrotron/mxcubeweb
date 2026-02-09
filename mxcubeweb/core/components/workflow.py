@@ -33,7 +33,6 @@ class Workflow(ComponentBase):
 
     def submit_parameters(self, params):
         if not params:
-            # Stop the workflow and queue manager if user closes the parameters dialog
             workflow = HWR.beamline.workflow
             workflow.abort()
 

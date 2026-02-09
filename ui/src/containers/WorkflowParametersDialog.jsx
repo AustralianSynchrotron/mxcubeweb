@@ -44,9 +44,6 @@ function WorkflowParametersDialog() {
               className="position-absolute top-0 start-0 w-100 h-100"
               style={{
                 backgroundImage: `url(${diagonalNoise})`,
-                zIndex: 2,
-                opacity: 0.6,
-                pointerEvents: 'none',
               }}
             />
           )}

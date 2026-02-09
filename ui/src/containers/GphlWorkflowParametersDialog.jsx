@@ -107,7 +107,7 @@ function GphlWorkflowParametersDialog(props) {
   }, [formData]);
 
   const handleAbort = useCallback(() => {
-    // Observers (no control) must not send workflow-cancel commands.
+    // Observers can't send workflow-cancel commands.
     if (!inControl) {
       handleHide();
       return;
@@ -428,9 +428,6 @@ function GphlWorkflowParametersDialog(props) {
               className="position-absolute top-0 start-0 w-100 h-100"
               style={{
                 backgroundImage: `url(${diagonalNoise})`,
-                zIndex: 2,
-                opacity: 0.6,
-                pointerEvents: 'none',
               }}
             />
           )}
