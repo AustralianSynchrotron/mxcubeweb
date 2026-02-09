@@ -23,6 +23,16 @@ def init_route(app, server, url_prefix):
     def submit_parameters():
         data = request.get_json()
         app.workflow.submit_parameters(data)
+
+        # Always close the dialog for all connected clients after submit.
+        server.emit("workflowParametersDialog", None, namespace="/hwr")
+        if not data:
+            # If the user cancelled, refresh the queue state for everyone.
+            server.emit(
+                "queue",
+                {"Signal": "update", "message": "all"},
+                namespace="/hwr",
+            )
         return Response(status=200)
 
     @bp.route("/gphl", methods=["POST"])

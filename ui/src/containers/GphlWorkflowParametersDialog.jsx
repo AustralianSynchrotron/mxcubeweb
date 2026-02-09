@@ -4,6 +4,8 @@ import { bindActionCreators } from 'redux';
 import { connect } from 'react-redux';
 import { Modal, Row, Col, Form, Table, Button, Stack } from 'react-bootstrap';
 
+import diagonalNoise from '../img/diagonal-noise.png';
+
 import styles from './WorkflowParametersDialog.module.css';
 
 import {
@@ -73,6 +75,7 @@ function GphlWorkflowParametersDialog(props) {
     formData,
     show,
     updatedFormData,
+    inControl,
     handleHide,
     updateGphlWorkflowParameters,
     resetUpdatedGphlWParameters,
@@ -104,6 +107,12 @@ function GphlWorkflowParametersDialog(props) {
   }, [formData]);
 
   const handleAbort = useCallback(() => {
+    // Observers can't send workflow-cancel commands.
+    if (!inControl) {
+      handleHide();
+      return;
+    }
+
     // const signal = formData.ui_schema[uiOptions].return_signal;
     const parameter = {
       signal: 'GphlParameterReturn',
@@ -112,7 +121,7 @@ function GphlWorkflowParametersDialog(props) {
     };
     updateGphlWorkflowParameters(parameter);
     handleHide();
-  }, [updateGphlWorkflowParameters, handleHide]);
+  }, [updateGphlWorkflowParameters, handleHide, inControl]);
 
   const handleFormDataUpdated = useCallback(() => {
     if (updatedFormData) {
@@ -149,6 +158,12 @@ function GphlWorkflowParametersDialog(props) {
   }, [fetchUpdated, handleFormDataUpdated, resetUpdatedGphlWParameters]);
 
   function handleSubmit(e) {
+    if (!inControl) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
     const form = e.currentTarget;
     if (form.checkValidity() === false || formState?.indexing_solution === '') {
       setValidated(true);
@@ -168,6 +183,10 @@ function GphlWorkflowParametersDialog(props) {
   }
 
   async function handleChange(e) {
+    if (!inControl) {
+      return;
+    }
+
     const error = {};
     const key = e.target.name;
     const val =
@@ -197,6 +216,9 @@ function GphlWorkflowParametersDialog(props) {
 
   const handleIndexingTableChange = useCallback(
     async (value) => {
+      if (!inControl) {
+        return;
+      }
       const newFormState = { ...formState };
       newFormState.indexing_solution = value;
       setFormState(newFormState);
@@ -208,11 +230,14 @@ function GphlWorkflowParametersDialog(props) {
       };
       await updateGphlWorkflowParameters(parameter);
     },
-    [setFormState, formData, updateGphlWorkflowParameters, formState],
+    [setFormState, formData, updateGphlWorkflowParameters, formState, inControl],
   );
 
   const onSelectRow = useCallback(
     (index, value) => {
+      if (!inControl) {
+        return;
+      }
       let newSelected = [...selected];
       let updatedValue = value;
       if (selected.includes(index)) {
@@ -227,7 +252,7 @@ function GphlWorkflowParametersDialog(props) {
       setSelected(newSelected);
       handleIndexingTableChange(updatedValue);
     },
-    [selected, handleIndexingTableChange],
+    [selected, handleIndexingTableChange, inControl],
   );
 
   let formName = '';
@@ -281,6 +306,7 @@ function GphlWorkflowParametersDialog(props) {
                                       label={schema.properties[fieldKey].title}
                                       onChange={(e) => handleChange(e)}
                                       checked={formState[fieldKey]}
+                                      disabled={!inControl}
                                       data-highlight={
                                         schema.properties[fieldKey].highlight ||
                                         undefined
@@ -292,6 +318,7 @@ function GphlWorkflowParametersDialog(props) {
                                       id={fieldKey}
                                       value={formState[fieldKey]}
                                       onChange={(e) => handleChange(e)}
+                                      disabled={!inControl}
                                       data-highlight={
                                         schema.properties[fieldKey].highlight ||
                                         undefined
@@ -327,9 +354,11 @@ function GphlWorkflowParametersDialog(props) {
                                       }
                                       defaultValue={formState[fieldKey]}
                                       readOnly={
+                                        !inControl ||
                                         schema.properties[fieldKey].readOnly
                                       }
                                       disabled={
+                                        !inControl ||
                                         schema.properties[fieldKey].readOnly
                                       }
                                     />
@@ -363,12 +392,20 @@ function GphlWorkflowParametersDialog(props) {
           : null}
         <Stack direction="horizontal" gap={3}>
           <div className="ms-auto">
-            <Button variant="success" disabled={validated} type="submit">
+            <Button
+              variant="success"
+              disabled={validated || !inControl}
+              type="submit"
+            >
               Continue{' '}
             </Button>
           </div>
           <div>
-            <Button variant="outline-secondary" onClick={handleAbort}>
+            <Button
+              variant="outline-secondary"
+              onClick={handleAbort}
+              disabled={!inControl}
+            >
               {' '}
               Abort{' '}
             </Button>
@@ -384,7 +421,16 @@ function GphlWorkflowParametersDialog(props) {
         <Modal.Title>{formName}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <div className="m-3" id="form-holder">
+        <div className="m-3 position-relative" id="form-holder">
+          {!inControl && (
+            <div
+              aria-hidden
+              className="position-absolute top-0 start-0 w-100 h-100"
+              style={{
+                backgroundImage: `url(${diagonalNoise})`,
+              }}
+            />
+          )}
           {renderFormRow}
         </div>
       </Modal.Body>
@@ -399,6 +445,7 @@ function mapStateToProps(state) {
     formData: state.workflow.gphlParameters,
     updatedFormData: state.workflow.gphlUpdatedParameters,
     fetchUpdated: state.workflow.fetchUpdated,
+    inControl: state.login.user.inControl,
   };
 }
 
