@@ -32,6 +32,16 @@ class Workflow(ComponentBase):
         return {"workflows": workflows}
 
     def submit_parameters(self, params):
+        if not params:
+            # Stop the workflow and queue manager if user closes the parameters dialog
+            workflow = HWR.beamline.workflow
+            workflow.abort()
+
+            HWR.beamline.queue_manager.stop()
+
+            workflow.set_values_map({})
+            return
+
         HWR.beamline.workflow.set_values_map(params)
 
     def update_gphl_parameters(self, params):
