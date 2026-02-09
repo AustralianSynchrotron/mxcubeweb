@@ -42,8 +42,7 @@ function ObserverDialog() {
         </Modal.Header>
         <Modal.Body>
           <p className="mb-0">
-            Someone else is currently using the beamline, you are going to be
-            logged in as an observer.
+            You are currently logged in as an observer.
           </p>
           {!isUserLogin && (
             <Form.Group className="mt-3" controlId="observerName">
