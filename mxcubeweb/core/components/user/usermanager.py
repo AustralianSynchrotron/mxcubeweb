@@ -123,9 +123,23 @@ class BaseUserManager(ComponentBase):
         if new_login:
             current_user.nickname = ""
 
+        # ======== ANSTO Remote Access ========
+        # When using RemoteAccessLims, do not set the current user to be in control.
+        # Control is determined by the ANSTO RemoteAccessLims hardware object
+        ansto_remote_access = False
+        try:
+            lims = HWR.beamline.lims
+            lims._get_remote_access_session()
+            ansto_remote_access = True
+        except Exception:
+            ansto_remote_access = False
+
         # If no user is currently in control set this user to be
-        # in control
+        # in control (only if not using ANSTO Remote Access)
         if not active_in_control:
+            if ansto_remote_access:
+                return
+
             if not HWR.beamline.lims.is_user_login_type():
                 # current_user.nickname = self.app.lims.get_proposal(current_user)
                 current_user.fullname = HWR.beamline.lims.get_full_user_name()
