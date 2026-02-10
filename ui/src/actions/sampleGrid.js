@@ -1,5 +1,4 @@
 import { showErrorPanel } from './general';
-import { setQueue } from './queue'; // eslint-disable-line import/no-cycle
 import { fetchSamplesList, sendSyncWithCrims } from '../api/sampleChanger';
 import { fetchLimsSamples } from '../api/lims';
 import { hideWaitDialog, showWaitDialog } from './waitDialog';
@@ -71,7 +70,6 @@ export function getSamplesList() {
       const json = await fetchSamplesList();
       const { sampleList, sampleOrder } = json;
       dispatch(updateSampleList(sampleList, sampleOrder));
-      dispatch(setQueue(json));
     } catch {
       dispatch(showErrorPanel(true, 'Could not get samples list'));
     }
@@ -87,7 +85,6 @@ export function syncSamples(lims) {
     try {
       const json = await fetchLimsSamples(lims);
       dispatch(updateSampleList(json.sampleList, json.sampleOrder));
-      dispatch(setQueue(json));
     } catch (error) {
       dispatch(
         showErrorPanel(
