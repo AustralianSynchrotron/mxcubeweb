@@ -18,6 +18,50 @@ class SampleChanger(ComponentBase):
     def __init__(self, app, config):
         super().__init__(app, config)
 
+    def refresh_puck_info(self):
+        """Refresh puck/container metadata on the underlying sample changer.
+
+        Not all sample changer HW objects implement this.
+        """
+        sc = getattr(HWR.beamline, "sample_changer", None)
+        if sc is None or not hasattr(sc, "refresh_puck_info"):
+            return {}
+
+        try:
+            return sc.refresh_puck_info() or {}
+        except Exception as ex:
+            logging.getLogger("MX3.HWR").warning(
+                "[SC] refresh_puck_info failed: %s", ex
+            )
+            return {}
+
+    def refresh_sc_contents_cache(self):
+        """Rebuild the SC_CONTENTS lookup cache.
+
+        This cache is used by LIMS syncing to map LIMS sample code/location -> sampleID.
+        """
+        self.sc_contents_init()
+
+        sc = getattr(HWR.beamline, "sample_changer", None)
+        if sc is None:
+            return
+
+        try:
+            samples_list = sc.get_sample_list()
+        except Exception as ex:
+            logging.getLogger("MX3.HWR").warning(
+                "[SC] refresh_sc_contents_cache failed: %s", ex
+            )
+            return
+
+        for sample in samples_list or []:
+            try:
+                if not sample.is_present():
+                    continue
+                self.sc_contents_add({"sampleID": sample.get_address(), "code": sample.get_id() or ""})
+            except Exception:
+                continue
+
     def init_signals(self):
         from mxcubeweb.routes import signals
 

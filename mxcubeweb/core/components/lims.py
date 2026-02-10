@@ -6,6 +6,8 @@ import re
 import sys
 from http import HTTPStatus
 from urllib.parse import urljoin
+from time import sleep
+
 
 import httpx
 from flask_login import current_user
@@ -276,7 +278,18 @@ class Lims(ComponentBase):
         # session_id is not used, so we can pass None as second argument to
         # 'db_connection.get_samples'
 
-        samples_info_list = HWR.beamline.lims.get_samples(lims_name)
+        # Try 3 times in case the robot client connection fails
+        for _ in range(3):
+            samples_info_list = self.app.sample_changer.refresh_puck_info()
+            if not samples_info_list:
+                logging.getLogger("MX3.HWR").info(
+                    "[LIMS] No sample info retrieved from LIMS, retrying..."
+                )
+                sleep(0.5)
+                continue
+            
+            break
+
         for sample_info in samples_info_list:
             sample_info["limsID"] = sample_info.pop("sampleId")
             sample_info["defaultPrefix"] = self.get_default_prefix(sample_info)
