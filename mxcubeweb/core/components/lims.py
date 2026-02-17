@@ -280,7 +280,7 @@ class Lims(ComponentBase):
 
         # Try 3 times in case the robot client connection fails
         for _ in range(3):
-            samples_info_list = self.app.sample_changer.refresh_puck_info()
+            samples_info_list = HWR.beamline.sample_changer.refresh_puck_info()
             if not samples_info_list:
                 logging.getLogger("MX3.HWR").info(
                     "[LIMS] No sample info retrieved from LIMS, retrying..."

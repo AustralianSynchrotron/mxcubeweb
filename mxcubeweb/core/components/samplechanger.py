@@ -18,18 +18,6 @@ class SampleChanger(ComponentBase):
     def __init__(self, app, config):
         super().__init__(app, config)
 
-    def refresh_puck_info(self):
-        """Refresh puck/container info
-        """
-        try:
-            return HWR.beamline.sample_changer.refresh_puck_info()
-        except Exception as ex:
-            logging.getLogger("MX3.HWR").warning(
-                "[SC] refresh_puck_info failed: %s", ex
-            )
-            return {}
-
-
     def init_signals(self):
         from mxcubeweb.routes import signals
 
