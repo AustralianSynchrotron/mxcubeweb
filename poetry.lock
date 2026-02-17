@@ -1821,36 +1821,12 @@ valkey = ["valkey (>=6) ; python_version >= \"3.8\""]
 
 [[package]]
 name = "fastapi"
-version = "0.120.2"
-description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-markers = "python_version == \"3.10\""
-files = [
-    {file = "fastapi-0.120.2-py3-none-any.whl", hash = "sha256:bedcf2c14240e43d56cb9a339b32bcf15104fe6b5897c0222603cb7ec416c8eb"},
-    {file = "fastapi-0.120.2.tar.gz", hash = "sha256:4c5ab43e2a90335bbd8326d1b659eac0f3dbcc015e2af573c4f5de406232c4ac"},
-]
-
-[package.dependencies]
-annotated-doc = ">=0.0.2"
-pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.1.0 || >2.1.0,<3.0.0"
-starlette = ">=0.40.0,<0.50.0"
-typing-extensions = ">=4.8.0"
-
-[package.extras]
-all = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.8)", "httpx (>=0.23.0,<1.0.0)", "itsdangerous (>=1.1.0)", "jinja2 (>=3.1.5)", "orjson (>=3.2.1)", "pydantic-extra-types (>=2.0.0)", "pydantic-settings (>=2.0.0)", "python-multipart (>=0.0.18)", "pyyaml (>=5.3.1)", "ujson (>=4.0.1,!=4.0.2,!=4.1.0,!=4.2.0,!=4.3.0,!=5.0.0,!=5.1.0)", "uvicorn[standard] (>=0.12.0)"]
-standard = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.8)", "httpx (>=0.23.0,<1.0.0)", "jinja2 (>=3.1.5)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
-standard-no-fastapi-cloud-cli = ["email-validator (>=2.0.0)", "fastapi-cli[standard-no-fastapi-cloud-cli] (>=0.0.8)", "httpx (>=0.23.0,<1.0.0)", "jinja2 (>=3.1.5)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
-
-[[package]]
-name = "fastapi"
 version = "0.124.4"
 description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
 optional = false
 python-versions = ">=3.8"
 groups = ["main"]
-markers = "python_version == \"3.11\""
+markers = "python_version >= \"3.10\""
 files = [
     {file = "fastapi-0.124.4-py3-none-any.whl", hash = "sha256:6d1e703698443ccb89e50abe4893f3c84d9d6689c0cf1ca4fad6d3c15cf69f15"},
     {file = "fastapi-0.124.4.tar.gz", hash = "sha256:0e9422e8d6b797515f33f500309f6e1c98ee4e85563ba0f2debb282df6343763"},
@@ -4061,7 +4037,7 @@ resolved_reference = "8bc53d243adf40b8d172f59061d82fc3ddf4e36a"
 
 [[package]]
 name = "mxcube-video-streamer"
-version = "1.8.4"
+version = "1.8.4.0"
 description = "FastAPI Based video streamer"
 optional = false
 python-versions = ">=3.10,<3.12"
@@ -4088,13 +4064,13 @@ tango = ["pytango (>=9.3.6,<10.0.0)"]
 
 [package.source]
 type = "git"
-url = "https://github.com/fhernandezvivanco/video-streamer.git"
-reference = "context_manager"
-resolved_reference = "17d4cba038d370355344e8b49afef6a4c31e435a"
+url = "https://github.com/AustralianSynchrotron/video-streamer.git"
+reference = "v1.8.4.0"
+resolved_reference = "af1c01cf4cefa004b71d2265d0f7624c8841cc69"
 
 [[package]]
 name = "mxcubecore"
-version = "1.195.0.53"
+version = "1.195.0.54"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.12"
@@ -4115,7 +4091,7 @@ lucid3 = "^3.0.0"
 lxml = "^4.9.1"
 matplotlib = "^3.6.2"
 mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v2.5.0", markers = "python_version == \"3.11\""}
-mxcube-video-streamer = {git = "https://github.com/fhernandezvivanco/video-streamer.git", rev = "context_manager", markers = "python_version == \"3.11\""}
+mxcube-video-streamer = {git = "https://github.com/AustralianSynchrotron/video-streamer.git", rev = "v1.8.4.0", markers = "python_version == \"3.11\""}
 numpy = {version = "^2.0.0", markers = "python_version == \"3.11\""}
 Pillow = "^10.4.0"
 prefect = {version = "3.6.10", optional = true, markers = "python_version >= \"3.10\""}
@@ -4138,8 +4114,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "video_streamer"
-resolved_reference = "67090ca14784e8d4b5aa0e849572ab28a9ff11c3"
+reference = "v1.195.0.54"
+resolved_reference = "576c58fbda09c61c765543ae97de9f41f3b2812a"
 
 [[package]]
 name = "myst-parser"
@@ -8108,4 +8084,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "1bf0658a7c5196460870ab25ee10714fbe93b33a33587128002f441589433a9e"
+content-hash = "6b4199e3b79a741d2d3e8f2696fec8c1ae4d18a63416b2dc9cfad74e792742da"
