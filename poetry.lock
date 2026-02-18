@@ -4037,7 +4037,7 @@ resolved_reference = "8bc53d243adf40b8d172f59061d82fc3ddf4e36a"
 
 [[package]]
 name = "mxcube-video-streamer"
-version = "1.8.4.0"
+version = "1.8.4.2"
 description = "FastAPI Based video streamer"
 optional = false
 python-versions = ">=3.10,<3.12"
@@ -4065,12 +4065,12 @@ tango = ["pytango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/video-streamer.git"
-reference = "v1.8.4.0"
-resolved_reference = "af1c01cf4cefa004b71d2265d0f7624c8841cc69"
+reference = "v1.8.4.2"
+resolved_reference = "4ef9fe8c7caf5e5d776e96c6689ce308bb1369d1"
 
 [[package]]
 name = "mxcubecore"
-version = "1.195.0.54"
+version = "1.195.0.56"
 description = "Core libraries for the MXCuBE application"
 optional = false
 python-versions = ">=3.8,<3.12"
@@ -4091,7 +4091,7 @@ lucid3 = "^3.0.0"
 lxml = "^4.9.1"
 matplotlib = "^3.6.2"
 mx3-beamline-library = {git = "https://github.com/AustralianSynchrotron/mx3-beamline-library.git", rev = "v2.5.0", markers = "python_version == \"3.11\""}
-mxcube-video-streamer = {git = "https://github.com/AustralianSynchrotron/video-streamer.git", rev = "v1.8.4.0", markers = "python_version == \"3.11\""}
+mxcube-video-streamer = {git = "https://github.com/AustralianSynchrotron/video-streamer.git", rev = "v1.8.4.2", markers = "python_version == \"3.11\""}
 numpy = {version = "^2.0.0", markers = "python_version == \"3.11\""}
 Pillow = "^10.4.0"
 prefect = {version = "3.6.10", optional = true, markers = "python_version >= \"3.10\""}
@@ -4114,8 +4114,8 @@ tango = ["PyTango (>=9.3.6,<10.0.0)"]
 [package.source]
 type = "git"
 url = "https://github.com/AustralianSynchrotron/mxcubecore.git"
-reference = "v1.195.0.54"
-resolved_reference = "576c58fbda09c61c765543ae97de9f41f3b2812a"
+reference = "v1.195.0.56"
+resolved_reference = "b2bf3cd70fb30b849082b9df6b6ea870d4378dac"
 
 [[package]]
 name = "myst-parser"
@@ -8084,4 +8084,4 @@ testing = ["coverage[toml]", "zope.event", "zope.testing"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9,<3.12"
-content-hash = "6b4199e3b79a741d2d3e8f2696fec8c1ae4d18a63416b2dc9cfad74e792742da"
+content-hash = "d0fa4da3081561f5aa1529abddde3c062254d8012c7d14414835f7d0a03f0ec6"
