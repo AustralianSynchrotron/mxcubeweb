@@ -290,12 +290,73 @@ class Lims(ComponentBase):
             
             break
 
+        _sample_list ={}
+        _sample_order = []
         for sample_info in samples_info_list:
-            sample_info["limsID"] = sample_info.pop("sampleId")
+            sample_location = sample_info.get("sampleLocation")
+            puck_location = sample_info.get("containerSampleChangerLocation")
+            if sample_location is None or puck_location is None:
+                continue
+
+            try:
+                port_int = int(sample_location)
+            except (TypeError, ValueError):
+                continue
+
+            # The UI filters samples by (cell_no, puck_no) and expects these to
+            # match the SC contents tree (cell=1 for single-cell changers).
+            cell_no = 1
+            puck_no = 1
+            container_loc_key = str(puck_location)
+            try:
+                basket = int(puck_location)
+            except (TypeError, ValueError):
+                basket = None
+            else:
+                if HWR.beamline.sample_changer.__class__.__TYPE__ in [
+                    "Flex Sample Changer",
+                    "FlexHCD",
+                    "RoboDiff",
+                ]:
+                    cell_no = int(math.ceil((basket) / 3.0))
+                    puck_no = basket - 3 * (cell_no - 1)
+                    container_loc_key = f"{cell_no}:{puck_no}"
+                else:
+                    puck_no = basket
+
+            sample_list_key = f"{container_loc_key}:{port_int:02d}"
+            sample_name = sample_info.get("sampleName") or ""
+            _sample_list[sample_list_key] = {
+                'sampleID': sample_list_key, 
+                'location': sample_list_key, 
+                'sampleName': sample_name, 
+                'crystalUUID': sample_list_key, 'proteinAcronym': '', 
+                'code': sample_list_key,
+                'limsID': sample_info.get('sampleId'),
+                'loadable': True, 
+                'state': 0, 
+                'tasks': [], 
+                'type': 'Sample', 
+                'cell_no': cell_no,
+                'puck_no': puck_no,
+                'defaultPrefix': sample_name, 
+                'defaultSubDir': sample_name + '/'}
+
+            _sample_order.append(sample_list_key)
+
+
+        self.app.SAMPLE_LIST = {"sampleList": _sample_list, "sampleOrder": _sample_order}
+
+        for sample_info in samples_info_list:
+            sample_info["limsID"] = sample_info.pop("sampleId", None)
             sample_info["defaultPrefix"] = self.get_default_prefix(sample_info)
             sample_info["defaultSubDir"] = self.get_default_subdir(sample_info)
 
-            if not VALID_SAMPLE_NAME_REGEXP.match(sample_info["sampleName"]):
+            sample_name = sample_info.get("sampleName")
+            if not isinstance(sample_name, str) or not sample_name:
+                continue
+
+            if not VALID_SAMPLE_NAME_REGEXP.match(sample_name):
                 raise AttributeError(
                     "sample name for sample %s contains an incorrect character"
                     % sample_info
