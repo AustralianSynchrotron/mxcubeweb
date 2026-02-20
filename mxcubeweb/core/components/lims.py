@@ -5,9 +5,8 @@ import math
 import re
 import sys
 from http import HTTPStatus
-from urllib.parse import urljoin
 from time import sleep
-
+from urllib.parse import urljoin
 
 import httpx
 from flask_login import current_user
@@ -287,10 +286,10 @@ class Lims(ComponentBase):
                 )
                 sleep(0.5)
                 continue
-            
+
             break
 
-        _sample_list ={}
+        _sample_list = {}
         _sample_order = []
         for sample_info in samples_info_list:
             sample_location = sample_info.get("sampleLocation")
@@ -327,26 +326,29 @@ class Lims(ComponentBase):
             sample_list_key = f"{container_loc_key}:{port_int:02d}"
             sample_name = sample_info.get("sampleName") or ""
             _sample_list[sample_list_key] = {
-                'sampleID': sample_list_key, 
-                'location': sample_list_key, 
-                'sampleName': sample_name, 
-                'crystalUUID': sample_list_key, 
-                'proteinAcronym': '', 
-                'code': sample_info["code"],
-                'limsID': sample_info.get('sampleId'),
-                'loadable': True, 
-                'state': 0, 
-                'tasks': [], 
-                'type': 'Sample', 
-                'cell_no': cell_no,
-                'puck_no': puck_no,
-                'defaultPrefix': sample_name, 
-                'defaultSubDir': sample_name + '/'}
+                "sampleID": sample_list_key,
+                "location": sample_list_key,
+                "sampleName": sample_name,
+                "crystalUUID": sample_list_key,
+                "proteinAcronym": "",
+                "code": sample_info["code"],
+                "limsID": sample_info.get("sampleId"),
+                "loadable": True,
+                "state": 0,
+                "tasks": [],
+                "type": "Sample",
+                "cell_no": cell_no,
+                "puck_no": puck_no,
+                "defaultPrefix": sample_name,
+                "defaultSubDir": sample_name + "/",
+            }
 
             _sample_order.append(sample_list_key)
 
-
-        self.app.SAMPLE_LIST = {"sampleList": _sample_list, "sampleOrder": _sample_order}
+        self.app.SAMPLE_LIST = {
+            "sampleList": _sample_list,
+            "sampleOrder": _sample_order,
+        }
 
         for sample_info in samples_info_list:
             sample_info["limsID"] = sample_info.pop("sampleId", None)
