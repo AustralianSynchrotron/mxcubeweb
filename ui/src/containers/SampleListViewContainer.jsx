@@ -627,7 +627,7 @@ class SampleListViewContainer extends React.Component {
       return (
         <TooltipTrigger
           id="sync-samples-tooltip"
-          tooltipContent={`Synchronise sample list with ${this.props.loginData.limsName[0].name}`}
+          tooltipContent={`Synchronise sample list`}
         >
           <Button
             className="nowrap-style"
