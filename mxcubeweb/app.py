@@ -430,7 +430,7 @@ class MXCUBEApplication:
             else:
                 logger.disabled = True
 
-        for name in ("httpx", "httpcore"):
+        for name in ("httpx", "httpcore", "geventwebsocket.handler"):
             logger = logging.getLogger(name)
             logger.setLevel(logging.ERROR)
             logger.propagate = False
