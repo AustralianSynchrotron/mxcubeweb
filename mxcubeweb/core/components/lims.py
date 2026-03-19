@@ -2,7 +2,6 @@
 import json
 import logging
 import math
-import re
 import sys
 from http import HTTPStatus
 from time import sleep
@@ -17,9 +16,6 @@ from mxcubecore.model import queue_model_objects as qmo
 from mxcubecore.model.lims_session import LimsSessionManager
 
 from mxcubeweb.core.components.component_base import ComponentBase
-from mxcubeweb.core.util import fsutils
-
-VALID_SAMPLE_NAME_REGEXP = re.compile("^[a-zA-Z0-9:+_-]+$")
 
 
 class Lims(ComponentBase):
@@ -358,12 +354,6 @@ class Lims(ComponentBase):
             sample_name = sample_info.get("sampleName")
             if not isinstance(sample_name, str) or not sample_name:
                 continue
-
-            if not VALID_SAMPLE_NAME_REGEXP.match(sample_name):
-                raise AttributeError(
-                    "sample name for sample %s contains an incorrect character"
-                    % sample_info
-                )
 
             try:
                 basket = int(sample_info["containerSampleChangerLocation"])
